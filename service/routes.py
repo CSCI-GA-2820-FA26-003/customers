@@ -21,10 +21,10 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Customer
 """
 
-# from flask import jsonify, request, url_for, abort
+from flask import jsonify, request
 from flask import current_app as app  # Import Flask application
 
-# from service.models import Customer
+from service.models import Customer
 from service.common import status  # HTTP Status Codes
 
 
@@ -44,4 +44,20 @@ def index():
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
 
-# Todo: Place your REST API code here ...
+
+# CREATE A NEW CUSTOMER
+@app.route("/customers", methods=["POST"])
+def create_customers():
+    """Create a Customer"""
+    app.logger.info("Request to Create a Customer...")
+    data = request.get_json()
+    customer = Customer()
+    customer.deserialize(data)
+    customer.create()
+    app.logger.info("Customer with new id [%s] created.", customer.id)
+    location_url = f"{request.base_url}/{customer.id}"
+    return (
+        jsonify(customer.serialize()),
+        status.HTTP_201_CREATED,
+        {"Location": location_url},
+    )
