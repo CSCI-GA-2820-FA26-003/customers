@@ -25,6 +25,7 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer
+from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
@@ -35,7 +36,7 @@ DATABASE_URI = os.getenv(
 #  T E S T   C A S E S
 ######################################################################
 # pylint: disable=too-many-public-methods
-class TestYourResourceService(TestCase):
+class TestCustomerService(TestCase):
     """REST API Server Tests"""
 
     @classmethod
@@ -72,4 +73,54 @@ class TestYourResourceService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-    # Todo: Add your test cases here...
+    ######################################################################
+        #  U P D A T E   T E S T   C A S E S
+    ######################################################################
+
+    def test_update_customer(self):
+        """It should update a customer with valid info and return 200 OK"""
+        customer = CustomerFactory()
+        customer.create()
+
+        customer_id = customer.id
+        new_name = "Updated Name"
+        new_address = "Updated Address"
+        updated_data = {"name": new_name, "address": new_address}
+
+        resp = self.client.put(f"/customers/{customer_id}", json=updated_data)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json["id"], customer_id)
+        self.assertEqual(resp.json["name"], new_name)
+        self.assertEqual(resp.json["address"], new_address)
+
+    def test_update_customer_not_found(self):
+        """It should return 404 Not Found when updating a non-existent customer"""
+        non_existent_id = 9999
+        updated_data = {"name": "New Name", "address": "New Address"}
+
+        resp = self.client.put(f"/customers/{non_existent_id}", json=updated_data)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", resp.json)
+
+    def test_update_customer_no_data(self):
+        """It should return 422 Unprocessable Entity when no data is provided"""
+        customer = CustomerFactory()
+        customer.create()
+
+        customer_id = customer.id
+
+        resp = self.client.put(f"/customers/{customer_id}", json={})
+        self.assertEqual(resp.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn("error", resp.json)
+
+    def test_update_customer_invalid_data(self):
+        """It should return 422 Unprocessable Entity when invalid data is provided"""
+        customer = CustomerFactory()
+        customer.create()
+
+        customer_id = customer.id
+        invalid_data = {"name": None, "address": None}  # Invalid data
+
+        resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
+        self.assertEqual(resp.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn("error", resp.json)

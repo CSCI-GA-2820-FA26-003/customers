@@ -22,9 +22,10 @@ and Delete Customer
 """
 
 # from flask import jsonify, request, url_for, abort
+from flask import request
 from flask import current_app as app  # Import Flask application
 
-# from service.models import Customer
+from service.models import Customer, DataValidationError
 from service.common import status  # HTTP Status Codes
 
 
@@ -45,3 +46,36 @@ def index():
 ######################################################################
 
 # Todo: Place your REST API code here ...
+# update customer
+@app.route("/customers/<int:customer_id>", methods=["PUT"])
+def update_customer(customer_id):
+    """Update a Customer"""
+    app.logger.info("Request to update customer with id: %s", customer_id)
+    customer = Customer.query.get(customer_id)
+    if not customer:
+        app.logger.warning("Customer with id %s not found", customer_id)
+        return (
+            {"error": f"Customer with id {customer_id} not found"},
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    data = request.get_json()
+    if not data:
+        app.logger.warning("No input data provided for update")
+        return (
+            {"error": "No input data provided"},
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    try:
+        customer.deserialize(data)
+        customer.update()
+    except DataValidationError as e:
+        app.logger.error("Data validation error: %s", str(e))
+        return (
+            {"error": str(e)},
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    app.logger.info("Customer with id %s updated successfully", customer_id)
+    return customer.serialize(), status.HTTP_200_OK
