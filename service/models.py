@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 logger = logging.getLogger("flask.app")
 
 # Create the SQLAlchemy object to be initialized later in init_db()
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={"autoflush": False})
 
 
 class DataValidationError(Exception):
@@ -52,8 +52,8 @@ class Customer(db.Model):
         """
         Updates a Customer to the database
         """
+        logger.info("Saving %s", self.name)
         try:
-            logger.info("Saving %s", self.name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
