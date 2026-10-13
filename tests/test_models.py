@@ -120,6 +120,34 @@ class TestCustomerModel(TestCase):
 
         self.assertRaises(DataValidationError, customer.create)
 
+    def test_create_only_space_name(self):
+        """It should not create a customer with name with only spaces"""
+        customer = CustomerFactory()
+        customer.name = "  "
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_empty_string_name(self):
+        """It should not create a customer with name which is empty string"""
+        customer = CustomerFactory()
+        customer.name = ""
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_only_space_address(self):
+        """It should not create a customer with address with only spaces"""
+        customer = CustomerFactory()
+        customer.address = "   "
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_only_empty_string_address(self):
+        """It should not create a customer with address which is empty string"""
+        customer = CustomerFactory()
+        customer.address = ""
+
+        self.assertRaises(DataValidationError, customer.create)
+
     def test_update_no_name(self):
         """It should not update a customer's name to none"""
         customer = CustomerFactory()

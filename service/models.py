@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 logger = logging.getLogger("flask.app")
 
 # Create the SQLAlchemy object to be initialized later in init_db()
-db = SQLAlchemy(session_options={"autoflush": False})
+db = SQLAlchemy()
 
 
 class DataValidationError(Exception):
@@ -27,6 +27,10 @@ class Customer(db.Model):
     ##################################################
 
     __tablename__ = "customers"
+    __table_args__ = (
+        db.CheckConstraint(r"name ~ '\S'", name="customers_name_not_blank"),
+        db.CheckConstraint(r"address ~ '\S'", name="customers_address_not_blank"),
+    )
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(63), nullable=False)
     address = db.Column(db.String(255), nullable=False)
@@ -38,9 +42,9 @@ class Customer(db.Model):
         """
         Creates a Customer to the database
         """
-        logger.info("Creating %s", self.name)
-        self.id = None  # pylint: disable=invalid-name
         try:
+            logger.info("Creating %s", self.name)
+            self.id = None  # pylint: disable=invalid-name
             db.session.add(self)
             db.session.commit()
         except Exception as e:
@@ -52,8 +56,8 @@ class Customer(db.Model):
         """
         Updates a Customer to the database
         """
-        logger.info("Saving %s", self.name)
         try:
+            logger.info("Saving %s", self.name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -62,8 +66,8 @@ class Customer(db.Model):
 
     def delete(self):
         """Removes a Customer from the data store"""
-        logger.info("Deleting %s", self.name)
         try:
+            logger.info("Deleting %s", self.name)
             db.session.delete(self)
             db.session.commit()
         except Exception as e:
