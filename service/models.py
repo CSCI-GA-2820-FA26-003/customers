@@ -1,5 +1,5 @@
 """
-Models for YourResourceModel
+Models for Customer
 
 All of the models are stored in this module
 """
@@ -17,29 +17,34 @@ class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
 
 
-class YourResourceModel(db.Model):
+class Customer(db.Model):
     """
-    Class that represents a YourResourceModel
+    Class that represents a customer
     """
 
     ##################################################
     # Table Schema
     ##################################################
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63))
 
-    # Todo: Place the rest of your schema here...
+    __tablename__ = "customers"
+    __table_args__ = (
+        db.CheckConstraint(r"name ~ '\S'", name="customers_name_not_blank"),
+        db.CheckConstraint(r"address ~ '\S'", name="customers_address_not_blank"),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(63), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
 
     def __repr__(self):
-        return f"<YourResourceModel {self.name} id=[{self.id}]>"
+        return f"<Customer name={self.name} id=[{self.id}]>"
 
     def create(self):
         """
-        Creates a YourResourceModel to the database
+        Creates a Customer to the database
         """
-        logger.info("Creating %s", self.name)
-        self.id = None  # pylint: disable=invalid-name
         try:
+            logger.info("Creating %s", self.name)
+            self.id = None  # pylint: disable=invalid-name
             db.session.add(self)
             db.session.commit()
         except Exception as e:
@@ -49,10 +54,10 @@ class YourResourceModel(db.Model):
 
     def update(self):
         """
-        Updates a YourResourceModel to the database
+        Updates a Customer to the database
         """
-        logger.info("Saving %s", self.name)
         try:
+            logger.info("Saving %s", self.name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -60,9 +65,9 @@ class YourResourceModel(db.Model):
             raise DataValidationError(e) from e
 
     def delete(self):
-        """Removes a YourResourceModel from the data store"""
-        logger.info("Deleting %s", self.name)
+        """Removes a Customer from the data store"""
         try:
+            logger.info("Deleting %s", self.name)
             db.session.delete(self)
             db.session.commit()
         except Exception as e:
@@ -71,27 +76,29 @@ class YourResourceModel(db.Model):
             raise DataValidationError(e) from e
 
     def serialize(self):
-        """Serializes a YourResourceModel into a dictionary"""
-        return {"id": self.id, "name": self.name}
+        """Serializes a Customer into a dictionary"""
+        return {"id": self.id, "name": self.name, "address": self.address}
 
     def deserialize(self, data):
         """
-        Deserializes a YourResourceModel from a dictionary
+        Deserializes a Customer from a dictionary
 
         Args:
             data (dict): A dictionary containing the resource data
         """
         try:
             self.name = data["name"]
-        except AttributeError as error:
-            raise DataValidationError("Invalid attribute: " + error.args[0]) from error
+            self.address = data["address"]
+        # This error will be raised when accessing method that doesn't exist on that object.
+        # except AttributeError as error:
+        #     raise DataValidationError("Invalid attribute: " + error.args[0]) from error
         except KeyError as error:
             raise DataValidationError(
-                "Invalid YourResourceModel: missing " + error.args[0]
+                "Invalid Customer: missing " + error.args[0]
             ) from error
         except TypeError as error:
             raise DataValidationError(
-                "Invalid YourResourceModel: body of request contained bad or no data "
+                "Invalid Customer: body of request contained bad or no data "
                 + str(error)
             ) from error
         return self
@@ -102,22 +109,22 @@ class YourResourceModel(db.Model):
 
     @classmethod
     def all(cls):
-        """Returns all of the YourResourceModels in the database"""
-        logger.info("Processing all YourResourceModels")
+        """Returns all of the Customer in the database"""
+        logger.info("Processing all Customers")
         return cls.query.all()
 
     @classmethod
     def find(cls, by_id):
-        """Finds a YourResourceModel by it's ID"""
+        """Finds a Customer by it's ID"""
         logger.info("Processing lookup for id %s ...", by_id)
         return cls.query.session.get(cls, by_id)
 
     @classmethod
     def find_by_name(cls, name):
-        """Returns all YourResourceModels with the given name
+        """Returns all Customers with the given name
 
         Args:
-            name (string): the name of the YourResourceModels you want to match
+            name (string): the name of the Customers you want to match
         """
         logger.info("Processing name query for %s ...", name)
         return cls.query.filter(cls.name == name)
