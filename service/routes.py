@@ -22,7 +22,7 @@ and Delete Customer
 """
 
 # from flask import jsonify, request, url_for, abort
-from flask import request
+from flask import jsonify, request, abort
 from flask import current_app as app  # Import Flask application
 
 from service.models import Customer, DataValidationError
@@ -51,31 +51,13 @@ def index():
 def update_customer(customer_id):
     """Update a Customer"""
     app.logger.info("Request to update customer with id: %s", customer_id)
-    customer = Customer.query.get(customer_id)
+    customer = Customer.find(customer_id)
     if not customer:
-        app.logger.warning("Customer with id %s not found", customer_id)
-        return (
-            {"error": f"Customer with id {customer_id} not found"},
-            status.HTTP_404_NOT_FOUND,
-        )
+        abort(status.HTTP_404_NOT_FOUND)
 
     data = request.get_json()
-    if not data:
-        app.logger.warning("No input data provided for update")
-        return (
-            {"error": "No input data provided"},
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-    try:
-        customer.deserialize(data)
-        customer.update()
-    except DataValidationError as e:
-        app.logger.error("Data validation error: %s", str(e))
-        return (
-            {"error": str(e)},
-            status.HTTP_400_BAD_REQUEST,
-        )
+    customer.deserialize(data)
+    customer.update()
 
     app.logger.info("Customer with id %s updated successfully", customer_id)
-    return customer.serialize(), status.HTTP_200_OK
+    return jsonify(customer.serialize()), status.HTTP_200_OK
