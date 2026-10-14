@@ -45,7 +45,7 @@ def index():
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
 
-# Todo: Place your REST API code here ...
+
 # update customer
 @app.route("/customers/<int:customer_id>", methods=["PUT"])
 def update_customer(customer_id):
@@ -64,7 +64,7 @@ def update_customer(customer_id):
         app.logger.warning("No input data provided for update")
         return (
             {"error": "No input data provided"},
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_400_BAD_REQUEST,
         )
 
     try:
@@ -74,7 +74,7 @@ def update_customer(customer_id):
         app.logger.error("Data validation error: %s", str(e))
         return (
             {"error": str(e)},
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_400_BAD_REQUEST,
         )
 
     app.logger.info("Customer with id %s updated successfully", customer_id)

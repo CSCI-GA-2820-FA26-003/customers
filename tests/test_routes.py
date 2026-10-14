@@ -74,7 +74,7 @@ class TestCustomerService(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     ######################################################################
-        #  U P D A T E   T E S T   C A S E S
+    #  U P D A T E   T E S T   C A S E S
     ######################################################################
 
     def test_update_customer(self):
@@ -103,18 +103,18 @@ class TestCustomerService(TestCase):
         self.assertIn("error", resp.json)
 
     def test_update_customer_no_data(self):
-        """It should return 422 Unprocessable Entity when no data is provided"""
+        """It should return 400 Bad Request when no data is provided"""
         customer = CustomerFactory()
         customer.create()
 
         customer_id = customer.id
 
         resp = self.client.put(f"/customers/{customer_id}", json={})
-        self.assertEqual(resp.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
 
     def test_update_customer_invalid_data(self):
-        """It should return 422 Unprocessable Entity when invalid data is provided"""
+        """It should return 400 Bad Request when invalid data is provided"""
         customer = CustomerFactory()
         customer.create()
 
@@ -122,5 +122,5 @@ class TestCustomerService(TestCase):
         invalid_data = {"name": None, "address": None}  # Invalid data
 
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
-        self.assertEqual(resp.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
