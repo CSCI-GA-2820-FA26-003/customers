@@ -85,11 +85,13 @@ class TestCustomerModel(TestCase):
         customer.create()
         new_name = "A whole new name"
         new_address = "A whole new address"
+        original_id = customer.id
 
         customer.name = new_name
         customer.address = new_address
         customer.update()
 
+        self.assertEqual(customer.id, original_id)
         found = Customer.find(customer.id)
         self.assertEqual(found.name, new_name)
         self.assertEqual(found.address, new_address)
@@ -118,6 +120,34 @@ class TestCustomerModel(TestCase):
 
         self.assertRaises(DataValidationError, customer.create)
 
+    def test_create_only_space_name(self):
+        """It should not create a customer with name with only spaces"""
+        customer = CustomerFactory()
+        customer.name = "  "
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_empty_string_name(self):
+        """It should not create a customer with name which is empty string"""
+        customer = CustomerFactory()
+        customer.name = ""
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_only_space_address(self):
+        """It should not create a customer with address with only spaces"""
+        customer = CustomerFactory()
+        customer.address = "   "
+
+        self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_only_empty_string_address(self):
+        """It should not create a customer with address which is empty string"""
+        customer = CustomerFactory()
+        customer.address = ""
+
+        self.assertRaises(DataValidationError, customer.create)
+
     def test_update_no_name(self):
         """It should not update a customer's name to none"""
         customer = CustomerFactory()
@@ -143,9 +173,8 @@ class TestCustomerModel(TestCase):
         self.assertRaises(DataValidationError, customer.update)
 
     def test_delete_not_existing_customer(self):
-        """It should delete a"""
+        """It should not delete a customer that was never saved"""
         customer = CustomerFactory()
-        customer.create()
 
         self.assertRaises(DataValidationError, customer.delete)
 
@@ -225,7 +254,13 @@ class TestCustomerModel(TestCase):
     def test_find_by_id_not_existing(self):
         """It should return None"""
         customer = CustomerFactory()
-        self.assertRaises(DataValidationError, customer.delete)
+        customer.create()
+        customer_id = customer.id
+        customer.delete()
+
+        found = Customer.find(customer_id)
+
+        self.assertIsNone(found)
 
     def test_find_by_name(self):
         """It should return a customer model"""
