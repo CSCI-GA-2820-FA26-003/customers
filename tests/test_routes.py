@@ -68,8 +68,19 @@ class TestYourResourceService(TestCase):
     ######################################################################
 
     def test_index(self):
-        """It should call the home page"""
+        """It should call the home page and return a 200 OK with service information"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.is_json)
+        data = resp.get_json()
+        self.assertEqual(data["name"], "Customer REST API Service")
+        self.assertEqual(data["version"], "1.0")
+        self.assertIn("description", data)
+        self.assertTrue(data["paths"].endswith("/customers"))
 
-    # Todo: Add your test cases here...
+    def test_index_method_not_allowed(self):
+        """It should return a 405 when the root URL is called with a method that is not allowed"""
+        resp = self.client.post("/")
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(resp.is_json)
+        self.assertIn("message", resp.get_json())
