@@ -160,3 +160,23 @@ class TestCustomerService(TestCase):
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
+
+    # DELETE CUSTOMER TEST CASES
+
+    def test_delete_customer(self):
+        """It should delete an existing customer"""
+        test_customer = CustomerFactory()
+        response = self.client.post(BASE_URL, json=test_customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        customer_id = response.get_json()["id"]
+
+        response = self.client.delete(f"{BASE_URL}/{customer_id}")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(response.data), 0)
+        self.assertIsNone(Customer.query.get(customer_id))
+
+    def test_delete_nonexistent_customer(self):
+        """It should return 204 when deleting a customer that does not exist"""
+        response = self.client.delete(f"{BASE_URL}/0")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(response.data), 0)

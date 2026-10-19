@@ -79,3 +79,19 @@ def update_customer(customer_id):
 
     app.logger.info("Customer with id %s updated successfully", customer_id)
     return jsonify(customer.serialize()), status.HTTP_200_OK
+
+
+# DELETE A CUSTOMER
+@app.route("/customers/<int:customer_id>", methods=["DELETE"])
+def delete_customers(customer_id):
+    """Delete a Customer
+    This endpoint will delete a Customer based on the id specified in the path
+    """
+    app.logger.info("Request to Delete a customer with id [%s]", customer_id)
+
+    customer = Customer.query.get(customer_id)
+    if customer:
+        customer.delete()
+        app.logger.info("Customer with id [%s] was deleted", customer_id)
+
+    return "", status.HTTP_204_NO_CONTENT
