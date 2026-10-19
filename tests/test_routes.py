@@ -160,3 +160,25 @@ class TestCustomerService(TestCase):
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
+
+    ######################################################################
+    #  LIST   T E S T   C A S E S
+    ######################################################################
+
+    def test_list_customers_with_data_in_database(self):
+        """It should return a list of customers"""
+        customer_data = []
+        for i in range(5):
+            customer_data.append(CustomerFactory())
+            customer_data[i].create()
+            customer_data[i] = customer_data[i].serialize()
+
+        resp = self.client.get("/customers")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertCountEqual(resp.get_json(), customer_data)
+
+    def test_list_customers_with_no_data_in_database(self):
+        """It should return an empty list"""
+        resp = self.client.get("/customers")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])
