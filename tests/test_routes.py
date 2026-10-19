@@ -74,6 +74,25 @@ class TestCustomerService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
+    # Todo: Add your test cases here...
+    def test_read_customer(self):
+        """It should read a customer by ID"""
+        customer = CustomerFactory()
+        customer.create()
+
+        response = self.client.get(f"/customers/{customer.id}")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json(), customer.serialize())
+
+    def test_read_customer_not_found(self):
+        """It should return 404 for a missing customer"""
+        response = self.client.get("/customers/999999")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json()["error"], "Not Found")
     # CREATE CUSTOMER TEST CASES
 
     def test_create_customer(self):
