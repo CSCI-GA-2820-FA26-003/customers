@@ -173,7 +173,7 @@ class TestCustomerService(TestCase):
         response = self.client.delete(f"{BASE_URL}/{customer_id}")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(len(response.data), 0)
-        self.assertIsNone(Customer.query.get(customer_id))
+        self.assertIsNone(Customer.find(customer_id))
 
     def test_delete_nonexistent_customer(self):
         """It should return 204 when deleting a customer that does not exist"""

@@ -89,7 +89,7 @@ def delete_customers(customer_id):
     """
     app.logger.info("Request to Delete a customer with id [%s]", customer_id)
 
-    customer = Customer.query.get(customer_id)
+    customer = Customer.find(customer_id)
     if customer:
         customer.delete()
         app.logger.info("Customer with id [%s] was deleted", customer_id)
