@@ -24,9 +24,11 @@ and Delete Customer
 # from flask import jsonify, request, url_for, abort
 from flask import jsonify, request, abort
 from flask import current_app as app  # Import Flask application
+from flask import jsonify, abort
 
 from service.models import Customer
 from service.common import status  # HTTP Status Codes
+from service.models import Customer
 
 
 ######################################################################
@@ -44,6 +46,22 @@ def index():
 ######################################################################
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
+
+
+# Todo: Place your REST API code here ...
+@app.route("/customers/<int:customer_id>", methods=["GET"])
+def read_customer(customer_id):
+    """Read a customer by ID"""
+    app.logger.info("Request to read customer with id: %s", customer_id)
+
+    customer = Customer.find(customer_id)
+    if customer is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            description=f"Customer with id {customer_id} was not found",
+        )
+
+    return jsonify(customer.serialize()), status.HTTP_200_OK
 
 
 # CREATE A NEW CUSTOMER
@@ -79,6 +97,22 @@ def update_customer(customer_id):
 
     app.logger.info("Customer with id %s updated successfully", customer_id)
     return jsonify(customer.serialize()), status.HTTP_200_OK
+
+
+# DELETE A CUSTOMER
+@app.route("/customers/<int:customer_id>", methods=["DELETE"])
+def delete_customers(customer_id):
+    """Delete a Customer
+    This endpoint will delete a Customer based on the id specified in the path
+    """
+    app.logger.info("Request to Delete a customer with id [%s]", customer_id)
+
+    customer = Customer.find(customer_id)
+    if customer:
+        customer.delete()
+        app.logger.info("Customer with id [%s] was deleted", customer_id)
+
+    return "", status.HTTP_204_NO_CONTENT
 
 
 # update customer
