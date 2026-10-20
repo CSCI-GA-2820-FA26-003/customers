@@ -93,6 +93,7 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(response.is_json)
         self.assertEqual(response.get_json()["error"], "Not Found")
+
     # CREATE CUSTOMER TEST CASES
 
     def test_create_customer(self):
@@ -199,3 +200,25 @@ class TestCustomerService(TestCase):
         response = self.client.delete(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(len(response.data), 0)
+
+    ######################################################################
+    #  LIST   T E S T   C A S E S
+    ######################################################################
+
+    def test_list_customers_with_data_in_database(self):
+        """It should return a list of customers"""
+        customer_data = []
+        for i in range(5):
+            customer_data.append(CustomerFactory())
+            customer_data[i].create()
+            customer_data[i] = customer_data[i].serialize()
+
+        resp = self.client.get("/customers")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertCountEqual(resp.get_json(), customer_data)
+
+    def test_list_customers_with_no_data_in_database(self):
+        """It should return an empty list"""
+        resp = self.client.get("/customers")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), [])

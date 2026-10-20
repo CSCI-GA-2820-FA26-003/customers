@@ -62,6 +62,8 @@ def read_customer(customer_id):
         )
 
     return jsonify(customer.serialize()), status.HTTP_200_OK
+
+
 # CREATE A NEW CUSTOMER
 @app.route("/customers", methods=["POST"])
 def create_customers():
@@ -111,3 +113,15 @@ def delete_customers(customer_id):
         app.logger.info("Customer with id [%s] was deleted", customer_id)
 
     return "", status.HTTP_204_NO_CONTENT
+
+
+# update customer
+@app.route("/customers", methods=["GET"])
+def list_customers():
+    """List All Customers"""
+    app.logger.info("Request to list all customers")
+    customers = Customer.all()
+
+    results = [customer.serialize() for customer in customers]
+    app.logger.info("Returning %d customers", len(results))
+    return jsonify(results), status.HTTP_200_OK
