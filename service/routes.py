@@ -56,7 +56,6 @@ def index():
 ######################################################################
 
 
-# Todo: Place your REST API code here ...
 @app.route("/customers/<int:customer_id>", methods=["GET"])
 def read_customer(customer_id):
     """Read a customer by ID"""
@@ -123,7 +122,7 @@ def delete_customers(customer_id):
     return "", status.HTTP_204_NO_CONTENT
 
 
-# update customer
+# list all customers
 @app.route("/customers", methods=["GET"])
 def list_customers():
     """List All Customers"""
