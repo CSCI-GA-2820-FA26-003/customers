@@ -3,31 +3,214 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python-blue.svg)](https://python.org/)
 
-This is a skeleton you can use to start your projects.
-
-**Note:** _Feel free to overwrite this `README.md` file with the one that describes your project._
-
 ## Overview
 
-This project template contains starter code for your class project. The `/service` folder contains your `models.py` file for your model and a `routes.py` file for your service. The `/tests` folder has test case starter code for testing the model and the service separately. All you need to do is add your functionality. You can use the [lab-flask-tdd](https://github.com/nyu-devops/lab-flask-tdd) for code examples to copy from.
+The **Customer** service manages customer records for DevOps E-commerce project. The client uses its REST API to perform operations such as creating customers, querying customers by ID, updating customer details, and deleting customers.
 
-## Automatic Setup
+## Get Started
 
-The best way to use this repo is to start your own repo using it as a git template. To do this just press the green **Use this template** button in GitHub and this will become the source for your repository.
+### Prerequisites
 
-## Manual Setup
+The following software is required to run this repository:
 
-You can also clone this repository and then copy and paste the starter code into your project repo folder on your local computer. Be careful not to copy over your own `README.md` file so be selective in what you copy.
+* [Docker](https://www.docker.com/products/docker-desktop/)
 
-There are 4 hidden files that you will need to copy manually if you use the Mac Finder or Windows Explorer to copy files from this folder into your repo folder.
+* [Microsoft VS Code](https://code.visualstudio.com/Download)
+
+### Clone the Repo
 
 These should be copied using a bash shell as follows:
 
 ```bash
-    cp .gitignore  ../<your_repo_folder>/
-    cp .flaskenv ../<your_repo_folder>/
-    cp .gitattributes ../<your_repo_folder>/
+git clone https://github.com/CSCI-GA-2820-FA26-003/customers.git
+
+cd ~/customers
+
+code .
 ```
+
+### Run the Service
+
+Start the service in the development container:
+
+```bash
+honcho start
+```
+
+The API is available at http://localhost:8080. Request and response bodies use JSON. Requests with a JSON body must include the `Content-Type: application/json` header.
+
+## Database Structure
+
+The current database structure is as follows:
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `id` | Integer | Primary key, used as `{customer_id}` in URLs. |
+| `name` | String, up to 63 characters | Customer name. Cannot be null, empty, or whitespace-only. |
+| `address` | String, up to 255 characters | Customer address. Cannot be null, empty, or whitespace-only. |
+
+Example customer representation:
+
+```json
+{
+  "id": 1,
+  "name": "DevOps",
+  "address": "251 Mercer St, New York, NY 10012"
+}
+```
+
+## APIs
+
+Examples use `http://localhost:8080`.
+
+### Get Service Information
+
+`GET /`
+
+```bash
+curl -i http://localhost:8080/
+```
+
+Returns service information and the customers endpoint URL with `200 OK`.
+
+Example response:
+
+```json
+{
+  "name": "Customer REST API Service",
+  "version": "1.0",
+  "description": "Create, read, update, delete and list the customers that are registered in the e-commerce store",
+  "paths": "http://localhost:8080/customers"
+}
+```
+
+### Create a Customer
+
+`POST /customers`
+
+```bash
+curl -i -X POST http://localhost:8080/customers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "DevOps",
+    "address": "251 Mercer St, New York, NY 10012"
+  }'
+```
+
+Example response for a newly assigned ID of `1`:
+
+```http
+HTTP/1.1 201 CREATED
+Content-Type: application/json
+Location: http://localhost:8080/customers/1
+
+{
+  "id": 1,
+  "name": "DevOps",
+  "address": "251 Mercer St, New York, NY 10012"
+}
+```
+
+| Result | Status |
+|--------|--------|
+| Customer created | `201` |
+| Missing required field, malformed JSON, or database constraint violation | `400` |
+| Missing or unsupported JSON content type | `415` |
+
+### Read a Customer
+
+`GET /customers/{customer_id}`
+
+```bash
+curl -i http://localhost:8080/customers/1
+```
+
+Returns the customer representation shown above with `200 OK`. If no customer exists for the requested ID, the response is `404 Not Found`.
+
+### Update a Customer
+
+`PUT /customers/{customer_id}`
+
+```bash
+curl -i -X PUT http://localhost:8080/customers/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John",
+    "address": "44 W Fourth St, New York, NY 10003"
+  }'
+```
+
+Provide both fields, including any value you want to keep. Partial updates and `PATCH` requests are not implemented.
+
+Example response body with `200 OK`:
+
+```json
+{
+  "id": 1,
+  "name": "DevOps",
+  "address": "251 Mercer St, New York, NY 10012"
+}
+```
+
+| Result | Status |
+|--------|--------|
+| Customer updated | `200` |
+| Customer does not exist | `404` |
+| Missing required field, malformed JSON, or database constraint violation | `400` |
+
+The route checks whether the customer exists before reading the body, so a request for a missing customer returns `404` before body validation.
+
+### Delete a Customer
+
+`DELETE /customers/{customer_id}`
+
+```bash
+curl -i -X DELETE http://localhost:8080/customers/1
+```
+
+Returns `204 No Content` with an empty body. Deleting an ID that does not exist also returns `204`, making repeated delete requests idempotent.
+
+### List All Customers
+
+`GET /customers`
+
+```bash
+curl -i http://localhost:8080/customers
+```
+
+Returns a JSON array of all customers with `200 OK`. If no customers exist, returns an empty array `[]`.
+
+Example response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "DevOps",
+    "address": "251 Mercer St, New York, NY 10012"
+  }
+]
+```
+
+### Error responses
+
+Registered error handlers return a JSON object with `status`, `error`, and `message` fields. For example, reading a missing customer produces:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "404 Not Found: Customer with id 999999 was not found"
+}
+```
+
+| Code | Typical cause |
+|------|---------------|
+| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name/address. |
+| `404 Not Found` | Reading or updating a missing customer, or requesting an unknown URL. |
+| `405 Method Not Allowed` | Using a method not registered for a path. |
+| `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |
+| `500 Internal Server Error` | An unexpected server error. |
 
 ## Contents
 
