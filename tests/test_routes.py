@@ -87,7 +87,6 @@ class TestCustomerService(TestCase):
         self.assertTrue(resp.is_json)
         self.assertIn("message", resp.get_json())
 
-    # Todo: Add your test cases here...
     def test_read_customer(self):
         """It should read a customer by ID"""
         customer = CustomerFactory()
