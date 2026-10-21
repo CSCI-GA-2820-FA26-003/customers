@@ -23,11 +23,9 @@ and Delete Customer
 
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
-from flask import jsonify, abort
 
 from service.models import Customer
 from service.common import status  # HTTP Status Codes
-from service.models import Customer
 
 
 ######################################################################
@@ -54,7 +52,6 @@ def index():
 ######################################################################
 #  R E S T   A P I   E N D P O I N T S
 ######################################################################
-
 
 @app.route("/customers/<int:customer_id>", methods=["GET"])
 def read_customer(customer_id):
