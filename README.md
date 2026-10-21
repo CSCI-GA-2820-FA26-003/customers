@@ -17,7 +17,7 @@ The following software is required to run this repository:
 
 * [Microsoft VS Code](https://code.visualstudio.com/Download)
 
-### Clone this Repo
+### Clone the Repo
 
 These should be copied using a bash shell as follows:
 
@@ -28,6 +28,16 @@ cd ~/customers
 
 code .
 ```
+
+### Run the Service
+
+Start the service in the development container:
+
+```bash
+honcho start
+```
+
+The API is available at http://localhost:8080. Request and response bodies use JSON. Requests with a JSON body must include the `Content-Type: application/json` header.
 
 ## Database Structure
 
@@ -51,11 +61,41 @@ Example customer representation:
 
 ## APIs
 
-Examples use `http://localhost:8080`. 
+Examples use `http://localhost:8080`.
+
+### Get Service Information
+
+`GET /`
+
+```bash
+curl -i http://localhost:8080/
+```
+
+Returns service information and the customers endpoint URL with `200 OK`.
+
+Example response:
+
+```json
+{
+  "name": "Customer REST API Service",
+  "version": "1.0",
+  "description": "Create, read, update, delete and list the customers that are registered in the e-commerce store",
+  "paths": "http://localhost:8080/customers"
+}
+```
 
 ### Create a Customer
 
 `POST /customers`
+
+```bash
+curl -i -X POST http://localhost:8080/customers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "DevOps",
+    "address": "251 Mercer St, New York, NY 10012"
+  }'
+```
 
 Example response for a newly assigned ID of `1`:
 
@@ -81,11 +121,24 @@ Location: http://localhost:8080/customers/1
 
 `GET /customers/{customer_id}`
 
+```bash
+curl -i http://localhost:8080/customers/1
+```
+
 Returns the customer representation shown above with `200 OK`. If no customer exists for the requested ID, the response is `404 Not Found`.
 
 ### Update a Customer
 
 `PUT /customers/{customer_id}`
+
+```bash
+curl -i -X PUT http://localhost:8080/customers/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John",
+    "address": "44 W Fourth St, New York, NY 10003"
+  }'
+```
 
 Provide both fields, including any value you want to keep. Partial updates and `PATCH` requests are not implemented.
 
@@ -111,7 +164,33 @@ The route checks whether the customer exists before reading the body, so a reque
 
 `DELETE /customers/{customer_id}`
 
+```bash
+curl -i -X DELETE http://localhost:8080/customers/1
+```
+
 Returns `204 No Content` with an empty body. Deleting an ID that does not exist also returns `204`, making repeated delete requests idempotent.
+
+### List All Customers
+
+`GET /customers`
+
+```bash
+curl -i http://localhost:8080/customers
+```
+
+Returns a JSON array of all customers with `200 OK`. If no customers exist, returns an empty array `[]`.
+
+Example response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "DevOps",
+    "address": "251 Mercer St, New York, NY 10012"
+  }
+]
+```
 
 ### Error responses
 
@@ -129,7 +208,7 @@ Registered error handlers return a JSON object with `status`, `error`, and `mess
 |------|---------------|
 | `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name/address. |
 | `404 Not Found` | Reading or updating a missing customer, or requesting an unknown URL. |
-| `405 Method Not Allowed` | Using a method not registered for a path, such as `GET /customers` or `PATCH /customers/1`. |
+| `405 Method Not Allowed` | Using a method not registered for a path. |
 | `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |
 | `500 Internal Server Error` | An unexpected server error. |
 
