@@ -27,6 +27,8 @@ US_STATE_CODES = frozenset(
 # US ZIP code: 12345 or 12345-6789
 POSTAL_CODE_PATTERN = re.compile(r"[0-9]{5}(-[0-9]{4})?")
 
+MEMBERSHIP_LEVELS = ("bronze", "silver", "gold")
+
 
 class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
@@ -50,6 +52,10 @@ class Customer(db.Model):
         db.CheckConstraint(
             r"postal_code ~ '\S'", name="customers_postal_code_not_blank"
         ),
+        db.CheckConstraint(
+            "membership_level IN ('bronze', 'silver', 'gold')",
+            name="customers_membership_level_valid",
+        ),
     )
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(63), nullable=False)
@@ -57,6 +63,7 @@ class Customer(db.Model):
     city = db.Column(db.String(63), nullable=False)
     state = db.Column(db.String(2), nullable=False)
     postal_code = db.Column(db.String(10), nullable=False)
+    membership_level = db.Column(db.String(15), nullable=False, server_default="bronze")
 
     def __repr__(self):
         return f"<Customer name={self.name} id=[{self.id}]>"
@@ -107,6 +114,7 @@ class Customer(db.Model):
             "city": self.city,
             "state": self.state,
             "postal_code": self.postal_code,
+            "membership_level": self.membership_level,
         }
 
     def deserialize(self, data):
@@ -122,6 +130,9 @@ class Customer(db.Model):
             city = data["city"]
             state = data["state"]
             postal_code = data["postal_code"]
+            membership_level = data.get(
+                "membership_level", self.membership_level or "bronze"
+            )
         # This error will be raised when accessing method that doesn't exist on that object.
         # except AttributeError as error:
         #     raise DataValidationError("Invalid attribute: " + error.args[0]) from error
@@ -142,6 +153,7 @@ class Customer(db.Model):
             ("city", city),
             ("state", state),
             ("postal_code", postal_code),
+            ("membership_level", membership_level),
         ):
             if not isinstance(value, str) or not value.strip():
                 raise DataValidationError(
@@ -154,12 +166,17 @@ class Customer(db.Model):
             raise DataValidationError(
                 f"Invalid Customer: invalid postal_code {postal_code}"
             )
+        if membership_level not in MEMBERSHIP_LEVELS:
+            raise DataValidationError(
+                f"Invalid Customer: invalid membership_level {membership_level}"
+            )
 
         self.name = name
         self.street = street
         self.city = city
         self.state = state
         self.postal_code = postal_code
+        self.membership_level = membership_level
         return self
 
     ##################################################
