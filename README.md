@@ -43,7 +43,7 @@ The API is available at http://localhost:8080. Request and response bodies use J
 
 The current database structure is as follows. Only US addresses are supported.
 
-> **Schema change:** the single `address` column was replaced by `street`, `city`, `state` and `postal_code`. Existing data is not migrated: run `flask db-create` to drop and recreate the tables.
+> **Schema change:** the single `address` column was replaced by `street`, `city`, `state` and `postal_code`, and a `membership_level` column was added. Existing data is not migrated: run `flask db-create` to drop and recreate the tables.
 
 | Field | Type |  Description |
 |-------|------|-------------|
@@ -53,6 +53,7 @@ The current database structure is as follows. Only US addresses are supported.
 | `city` | String, up to 63 characters | City. Cannot be null, empty, or whitespace-only. |
 | `state` | String, 2 characters | US state code, e.g. `NY`. Must be a USPS code (50 states, DC, territories or Freely Associated States); lowercase input is stored uppercase. |
 | `postal_code` | String, up to 10 characters | US ZIP code in `12345` or `12345-6789` format. |
+| `membership_level` | String | One of `bronze`, `silver`, or `gold`. Defaults to `bronze`. |
 
 Example customer representation:
 
@@ -63,7 +64,8 @@ Example customer representation:
   "street": "251 Mercer St",
   "city": "New York",
   "state": "NY",
-  "postal_code": "10012"
+  "postal_code": "10012",
+  "membership_level": "bronze"
 }
 ```
 
@@ -108,6 +110,8 @@ curl -i -X POST http://localhost:8080/customers \
   }'
 ```
 
+Every new customer is created with the `bronze` membership level. `membership_level` is not needed in the request; if a valid level is given, it is ignored. Use [Update a Customer](#update-a-customer) to change the level.
+
 Example response for a newly assigned ID of `1`:
 
 ```http
@@ -121,7 +125,8 @@ Location: http://localhost:8080/customers/1
   "street": "251 Mercer St",
   "city": "New York",
   "state": "NY",
-  "postal_code": "10012"
+  "postal_code": "10012",
+  "membership_level": "bronze"
 }
 ```
 
@@ -153,11 +158,12 @@ curl -i -X PUT http://localhost:8080/customers/1 \
     "street": "44 W Fourth St",
     "city": "New York",
     "state": "NY",
-    "postal_code": "10003"
+    "postal_code": "10003",
+    "membership_level": "gold"
   }'
 ```
 
-Provide all fields, including any value you want to keep. Partial updates and `PATCH` requests are not implemented.
+Provide all address and name fields, including any value you want to keep. `membership_level` is optional; if it is omitted, the current level is kept. Partial updates and `PATCH` requests are not implemented.
 
 Example response body with `200 OK`:
 
@@ -168,7 +174,8 @@ Example response body with `200 OK`:
   "street": "251 Mercer St",
   "city": "New York",
   "state": "NY",
-  "postal_code": "10012"
+  "postal_code": "10012",
+  "membership_level": "gold"
 }
 ```
 
@@ -210,7 +217,8 @@ Example response:
     "street": "251 Mercer St",
     "city": "New York",
     "state": "NY",
-    "postal_code": "10012"
+    "postal_code": "10012",
+    "membership_level": "bronze"
   }
 ]
 ```
@@ -229,7 +237,7 @@ Registered error handlers return a JSON object with `status`, `error`, and `mess
 
 | Code | Typical cause |
 |------|---------------|
-| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name or address field, an invalid state code, or a malformed ZIP code. |
+| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name or address field, an invalid state code, a malformed ZIP code, or an unknown membership level. |
 | `404 Not Found` | Reading or updating a missing customer, or requesting an unknown URL. |
 | `405 Method Not Allowed` | Using a method not registered for a path. |
 | `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |

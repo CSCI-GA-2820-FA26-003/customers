@@ -76,6 +76,8 @@ def create_customers():
     data = request.get_json()
     customer = Customer()
     customer.deserialize(data)
+    # Every new customer starts at bronze; the level can only be changed by an update
+    customer.membership_level = "bronze"
     customer.create()
     app.logger.info("Customer with new id [%s] created.", customer.id)
     location_url = f"{request.base_url}/{customer.id}"

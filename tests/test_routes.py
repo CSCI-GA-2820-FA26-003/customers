@@ -123,6 +123,32 @@ class TestCustomerService(TestCase):
         self.assertEqual(new_customer["city"], test_customer.city)
         self.assertEqual(new_customer["state"], test_customer.state)
         self.assertEqual(new_customer["postal_code"], test_customer.postal_code)
+        self.assertEqual(new_customer["membership_level"], "bronze")
+
+    def test_create_customer_default_membership_level(self):
+        """It should create a new customer with bronze membership level by default"""
+        data = CustomerFactory().serialize()
+        del data["membership_level"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.get_json()["membership_level"], "bronze")
+
+    def test_create_customer_ignores_membership_level(self):
+        """It should create a new customer with bronze even if another level is given"""
+        data = CustomerFactory().serialize()
+        data["membership_level"] = "gold"
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        new_customer = response.get_json()
+        self.assertEqual(new_customer["membership_level"], "bronze")
+        self.assertEqual(Customer.find(new_customer["id"]).membership_level, "bronze")
+
+    def test_create_customer_invalid_membership_level(self):
+        """It should not create a customer with an unknown membership level"""
+        data = CustomerFactory().serialize()
+        data["membership_level"] = "platinum"
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_customer_no_street(self):
         """It should not create a customer without a street"""
@@ -192,6 +218,7 @@ class TestCustomerService(TestCase):
     def test_update_customer(self):
         """It should update a customer with valid info and return 200 OK"""
         customer = CustomerFactory()
+        customer.membership_level = "bronze"
         customer.create()
 
         customer_id = customer.id
@@ -200,12 +227,15 @@ class TestCustomerService(TestCase):
         updated_data = customer.serialize()
         updated_data["name"] = new_name
         updated_data["street"] = new_street
+        updated_data["membership_level"] = "gold"
 
         resp = self.client.put(f"/customers/{customer_id}", json=updated_data)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.json["id"], customer_id)
         self.assertEqual(resp.json["name"], new_name)
         self.assertEqual(resp.json["street"], new_street)
+        self.assertEqual(resp.json["membership_level"], "gold")
+        self.assertEqual(Customer.find(customer_id).membership_level, "gold")
 
     def test_update_customer_not_found(self):
         """It should return 404 Not Found when updating a non-existent customer"""

@@ -72,6 +72,7 @@ class TestCustomerModel(TestCase):
     def test_create_customer(self):
         """It should create a customer"""
         customer = CustomerFactory()
+        customer.membership_level = "gold"
         self.assertIsNone(customer.id)
 
         customer.create()
@@ -85,6 +86,18 @@ class TestCustomerModel(TestCase):
         self.assertEqual(data.city, customer.city)
         self.assertEqual(data.state, customer.state)
         self.assertEqual(data.postal_code, customer.postal_code)
+        self.assertEqual(data.membership_level, customer.membership_level)
+
+    def test_create_default_membership_level(self):
+        """It should create a customer with bronze membership level by default"""
+        data = CustomerFactory().serialize()
+        del data["membership_level"]
+        customer = Customer().deserialize(data)
+
+        customer.create()
+
+        found = Customer.find(customer.id)
+        self.assertEqual(found.membership_level, "bronze")
 
     def test_update_customer(self):
         """It should update a customer"""
@@ -158,6 +171,13 @@ class TestCustomerModel(TestCase):
 
                 self.assertRaises(DataValidationError, customer.create)
 
+    def test_create_invalid_membership_level(self):
+        """It should not create a customer with an unknown membership level"""
+        customer = CustomerFactory()
+        customer.membership_level = "platinum"
+
+        self.assertRaises(DataValidationError, customer.create)
+
     def test_update_no_name(self):
         """It should not update a customer's name to none"""
         customer = CustomerFactory()
@@ -225,6 +245,7 @@ class TestCustomerModel(TestCase):
         self.assertEqual(data["city"], customer.city)
         self.assertEqual(data["state"], customer.state)
         self.assertEqual(data["postal_code"], customer.postal_code)
+        self.assertEqual(data["membership_level"], customer.membership_level)
         self.assertNotIn("address", data)
 
     def test_deserialize(self):
@@ -239,6 +260,18 @@ class TestCustomerModel(TestCase):
         self.assertEqual(customer.city, data["city"])
         self.assertEqual(customer.state, data["state"])
         self.assertEqual(customer.postal_code, data["postal_code"])
+        self.assertEqual(customer.membership_level, data["membership_level"])
+
+    def test_deserialize_no_membership_level(self):
+        """It should keep the current membership level when none is given"""
+        customer = CustomerFactory()
+        customer.membership_level = "gold"
+        data = CustomerFactory().serialize()
+        del data["membership_level"]
+
+        customer.deserialize(data)
+
+        self.assertEqual(customer.membership_level, "gold")
 
     def test_deserialize_invalid_data(self):
         """It should raise a data validation error"""
@@ -267,7 +300,14 @@ class TestCustomerModel(TestCase):
 
     def test_deserialize_blank_fields(self):
         """It should not deserialize a blank or non-string field"""
-        for field in ("name", "street", "city", "state", "postal_code"):
+        for field in (
+            "name",
+            "street",
+            "city",
+            "state",
+            "postal_code",
+            "membership_level",
+        ):
             for value in BLANK_VALUES + [12345]:
                 with self.subTest(field=field, value=value):
                     data = CustomerFactory().serialize()
@@ -325,6 +365,23 @@ class TestCustomerModel(TestCase):
         customer = Customer().deserialize(data)
 
         self.assertEqual(customer.postal_code, "10012-1234")
+
+    def test_deserialize_invalid_membership_level(self):
+        """It should not deserialize an unknown membership level"""
+        for value in ["platinum", "Gold", " gold"]:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                data = CustomerFactory().serialize()
+                data["membership_level"] = value
+
+                self.assertRaisesRegex(
+                    DataValidationError,
+                    "invalid membership_level",
+                    customer.deserialize,
+                    data,
+                )
+                # A failed deserialize leaves the record untouched
+                self.assertEqual(customer.membership_level, "bronze")
 
     def test_all(self):
         """It should return a list of customer model"""

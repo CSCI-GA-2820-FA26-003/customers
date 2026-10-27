@@ -20,3 +20,4 @@ class CustomerFactory(factory.Factory):
     city = factory.Faker("city")
     state = factory.Faker("state_abbr")
     postal_code = factory.Faker("zipcode")
+    membership_level = "bronze"
