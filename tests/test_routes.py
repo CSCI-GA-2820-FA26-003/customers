@@ -49,6 +49,9 @@ class TestCustomerService(TestCase):
         app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
         app.logger.setLevel(logging.CRITICAL)
         app.app_context().push()
+        # Rebuild the schema so model changes apply without a migration
+        db.drop_all()
+        db.create_all()
 
     @classmethod
     def tearDownClass(cls):
@@ -116,13 +119,54 @@ class TestCustomerService(TestCase):
         self.assertIsNotNone(response.headers.get("Location"))
         new_customer = response.get_json()
         self.assertEqual(new_customer["name"], test_customer.name)
-        self.assertEqual(new_customer["address"], test_customer.address)
+        self.assertEqual(new_customer["street"], test_customer.street)
+        self.assertEqual(new_customer["city"], test_customer.city)
+        self.assertEqual(new_customer["state"], test_customer.state)
+        self.assertEqual(new_customer["postal_code"], test_customer.postal_code)
 
-    def test_create_customer_no_address(self):
-        """It should not create a customer without an address"""
+    def test_create_customer_no_street(self):
+        """It should not create a customer without a street"""
         test_customer = CustomerFactory()
         data = test_customer.serialize()
-        del data["address"]
+        del data["street"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_no_city(self):
+        """It should not create a customer without a city"""
+        test_customer = CustomerFactory()
+        data = test_customer.serialize()
+        del data["city"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_no_state(self):
+        """It should not create a customer without a state"""
+        test_customer = CustomerFactory()
+        data = test_customer.serialize()
+        del data["state"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_no_postal_code(self):
+        """It should not create a customer without a postal code"""
+        test_customer = CustomerFactory()
+        data = test_customer.serialize()
+        del data["postal_code"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_invalid_state(self):
+        """It should not create a customer with an invalid state code"""
+        data = CustomerFactory().serialize()
+        data["state"] = "New York"
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_invalid_postal_code(self):
+        """It should not create a customer with an invalid postal code"""
+        data = CustomerFactory().serialize()
+        data["postal_code"] = "ABCDE"
         response = self.client.post(BASE_URL, json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -152,19 +196,21 @@ class TestCustomerService(TestCase):
 
         customer_id = customer.id
         new_name = "Updated Name"
-        new_address = "Updated Address"
-        updated_data = {"name": new_name, "address": new_address}
+        new_street = "Updated Street"
+        updated_data = customer.serialize()
+        updated_data["name"] = new_name
+        updated_data["street"] = new_street
 
         resp = self.client.put(f"/customers/{customer_id}", json=updated_data)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.json["id"], customer_id)
         self.assertEqual(resp.json["name"], new_name)
-        self.assertEqual(resp.json["address"], new_address)
+        self.assertEqual(resp.json["street"], new_street)
 
     def test_update_customer_not_found(self):
         """It should return 404 Not Found when updating a non-existent customer"""
         non_existent_id = 9999
-        updated_data = {"name": "New Name", "address": "New Address"}
+        updated_data = CustomerFactory().serialize()
 
         resp = self.client.put(f"/customers/{non_existent_id}", json=updated_data)
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
@@ -187,7 +233,13 @@ class TestCustomerService(TestCase):
         customer.create()
 
         customer_id = customer.id
-        invalid_data = {"name": None, "address": None}  # Invalid data
+        invalid_data = {
+            "name": None,
+            "street": None,
+            "city": None,
+            "state": None,
+            "postal_code": None,
+        }
 
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

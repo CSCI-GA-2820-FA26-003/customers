@@ -41,13 +41,18 @@ The API is available at http://localhost:8080. Request and response bodies use J
 
 ## Database Structure
 
-The current database structure is as follows:
+The current database structure is as follows. Only US addresses are supported.
+
+> **Schema change:** the single `address` column was replaced by `street`, `city`, `state` and `postal_code`. Existing data is not migrated: run `flask db-create` to drop and recreate the tables.
 
 | Field | Type |  Description |
 |-------|------|-------------|
 | `id` | Integer | Primary key, used as `{customer_id}` in URLs. |
 | `name` | String, up to 63 characters | Customer name. Cannot be null, empty, or whitespace-only. |
-| `address` | String, up to 255 characters | Customer address. Cannot be null, empty, or whitespace-only. |
+| `street` | String, up to 255 characters | Street address. Cannot be null, empty, or whitespace-only. |
+| `city` | String, up to 63 characters | City. Cannot be null, empty, or whitespace-only. |
+| `state` | String, 2 characters | US state code, e.g. `NY`. Must be a USPS code (50 states, DC, territories or Freely Associated States); lowercase input is stored uppercase. |
+| `postal_code` | String, up to 10 characters | US ZIP code in `12345` or `12345-6789` format. |
 
 Example customer representation:
 
@@ -55,7 +60,10 @@ Example customer representation:
 {
   "id": 1,
   "name": "DevOps",
-  "address": "251 Mercer St, New York, NY 10012"
+  "street": "251 Mercer St",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10012"
 }
 ```
 
@@ -93,7 +101,10 @@ curl -i -X POST http://localhost:8080/customers \
   -H "Content-Type: application/json" \
   -d '{
     "name": "DevOps",
-    "address": "251 Mercer St, New York, NY 10012"
+    "street": "251 Mercer St",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10012"
   }'
 ```
 
@@ -107,7 +118,10 @@ Location: http://localhost:8080/customers/1
 {
   "id": 1,
   "name": "DevOps",
-  "address": "251 Mercer St, New York, NY 10012"
+  "street": "251 Mercer St",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10012"
 }
 ```
 
@@ -136,11 +150,14 @@ curl -i -X PUT http://localhost:8080/customers/1 \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John",
-    "address": "44 W Fourth St, New York, NY 10003"
+    "street": "44 W Fourth St",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10003"
   }'
 ```
 
-Provide both fields, including any value you want to keep. Partial updates and `PATCH` requests are not implemented.
+Provide all fields, including any value you want to keep. Partial updates and `PATCH` requests are not implemented.
 
 Example response body with `200 OK`:
 
@@ -148,7 +165,10 @@ Example response body with `200 OK`:
 {
   "id": 1,
   "name": "DevOps",
-  "address": "251 Mercer St, New York, NY 10012"
+  "street": "251 Mercer St",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10012"
 }
 ```
 
@@ -187,7 +207,10 @@ Example response:
   {
     "id": 1,
     "name": "DevOps",
-    "address": "251 Mercer St, New York, NY 10012"
+    "street": "251 Mercer St",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10012"
   }
 ]
 ```
@@ -206,7 +229,7 @@ Registered error handlers return a JSON object with `status`, `error`, and `mess
 
 | Code | Typical cause |
 |------|---------------|
-| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name/address. |
+| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank name or address field, an invalid state code, or a malformed ZIP code. |
 | `404 Not Found` | Reading or updating a missing customer, or requesting an unknown URL. |
 | `405 Method Not Allowed` | Using a method not registered for a path. |
 | `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |

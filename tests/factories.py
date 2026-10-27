@@ -16,4 +16,7 @@ class CustomerFactory(factory.Factory):
 
     # id = factory.Sequence(lambda n: n)
     name = factory.Faker("first_name")
-    address = factory.Faker("address")
+    street = factory.Faker("street_address")
+    city = factory.Faker("city")
+    state = factory.Faker("state_abbr")
+    postal_code = factory.Faker("zipcode")
