@@ -29,6 +29,7 @@ from .factories import CustomerFactory
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
 )
+BLANK_VALUES = [None, "", "   "]
 
 
 ######################################################################
@@ -46,6 +47,9 @@ class TestCustomerModel(TestCase):
         app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
         app.logger.setLevel(logging.CRITICAL)
         app.app_context().push()
+        # Rebuild the schema so model changes apply without a migration
+        db.drop_all()
+        db.create_all()
 
     @classmethod
     def tearDownClass(cls):
@@ -77,24 +81,27 @@ class TestCustomerModel(TestCase):
         self.assertEqual(len(found), 1)
         data = Customer.find(customer.id)
         self.assertEqual(data.name, customer.name)
-        self.assertEqual(data.address, customer.address)
+        self.assertEqual(data.street, customer.street)
+        self.assertEqual(data.city, customer.city)
+        self.assertEqual(data.state, customer.state)
+        self.assertEqual(data.postal_code, customer.postal_code)
 
     def test_update_customer(self):
         """It should update a customer"""
         customer = CustomerFactory()
         customer.create()
         new_name = "A whole new name"
-        new_address = "A whole new address"
+        new_street = "A whole new street"
         original_id = customer.id
 
         customer.name = new_name
-        customer.address = new_address
+        customer.street = new_street
         customer.update()
 
         self.assertEqual(customer.id, original_id)
         found = Customer.find(customer.id)
         self.assertEqual(found.name, new_name)
-        self.assertEqual(found.address, new_address)
+        self.assertEqual(found.street, new_street)
 
     def test_delete_customer(self):
         """It should delete a customer"""
@@ -106,47 +113,50 @@ class TestCustomerModel(TestCase):
         found = Customer.find(customer.id)
         self.assertIsNone(found)
 
-    def test_create_no_name(self):
-        """It should not create a customer with no name"""
-        customer = CustomerFactory()
-        customer.name = None
+    def test_create_invalid_name(self):
+        """It should not create a customer with no name or a blank name"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.name = value
 
-        self.assertRaises(DataValidationError, customer.create)
+                self.assertRaises(DataValidationError, customer.create)
 
-    def test_create_no_address(self):
-        """It should not create a customer with no address"""
-        customer = CustomerFactory()
-        customer.address = None
+    def test_create_invalid_street(self):
+        """It should not create a customer with no street or a blank street"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.street = value
 
-        self.assertRaises(DataValidationError, customer.create)
+                self.assertRaises(DataValidationError, customer.create)
 
-    def test_create_only_space_name(self):
-        """It should not create a customer with name with only spaces"""
-        customer = CustomerFactory()
-        customer.name = "  "
+    def test_create_invalid_city(self):
+        """It should not create a customer with no city or a blank city"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.city = value
 
-        self.assertRaises(DataValidationError, customer.create)
+                self.assertRaises(DataValidationError, customer.create)
 
-    def test_create_empty_string_name(self):
-        """It should not create a customer with name which is empty string"""
-        customer = CustomerFactory()
-        customer.name = ""
+    def test_create_invalid_state(self):
+        """It should not create a customer with no state or a blank state"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.state = value
 
-        self.assertRaises(DataValidationError, customer.create)
+                self.assertRaises(DataValidationError, customer.create)
 
-    def test_create_only_space_address(self):
-        """It should not create a customer with address with only spaces"""
-        customer = CustomerFactory()
-        customer.address = "   "
+    def test_create_invalid_postal_code(self):
+        """It should not create a customer with no postal code or a blank postal code"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.postal_code = value
 
-        self.assertRaises(DataValidationError, customer.create)
-
-    def test_create_only_empty_string_address(self):
-        """It should not create a customer with address which is empty string"""
-        customer = CustomerFactory()
-        customer.address = ""
-
-        self.assertRaises(DataValidationError, customer.create)
+                self.assertRaises(DataValidationError, customer.create)
 
     def test_update_no_name(self):
         """It should not update a customer's name to none"""
@@ -156,11 +166,35 @@ class TestCustomerModel(TestCase):
 
         self.assertRaises(DataValidationError, customer.update)
 
-    def test_update_no_address(self):
-        """It should not update a customer's address to none"""
+    def test_update_no_street(self):
+        """It should not update a customer's street to none"""
         customer = CustomerFactory()
         customer.create()
-        customer.address = None
+        customer.street = None
+
+        self.assertRaises(DataValidationError, customer.update)
+
+    def test_update_no_city(self):
+        """It should not update a customer's city to none"""
+        customer = CustomerFactory()
+        customer.create()
+        customer.city = None
+
+        self.assertRaises(DataValidationError, customer.update)
+
+    def test_update_no_state(self):
+        """It should not update a customer's state to none"""
+        customer = CustomerFactory()
+        customer.create()
+        customer.state = None
+
+        self.assertRaises(DataValidationError, customer.update)
+
+    def test_update_no_postal_code(self):
+        """It should not update a customer's postal code to none"""
+        customer = CustomerFactory()
+        customer.create()
+        customer.postal_code = None
 
         self.assertRaises(DataValidationError, customer.update)
 
@@ -187,7 +221,11 @@ class TestCustomerModel(TestCase):
         self.assertIsInstance(data, dict)
         self.assertEqual(data["id"], customer.id)
         self.assertEqual(data["name"], customer.name)
-        self.assertEqual(data["address"], customer.address)
+        self.assertEqual(data["street"], customer.street)
+        self.assertEqual(data["city"], customer.city)
+        self.assertEqual(data["state"], customer.state)
+        self.assertEqual(data["postal_code"], customer.postal_code)
+        self.assertNotIn("address", data)
 
     def test_deserialize(self):
         """It should return a model of a customer"""
@@ -197,7 +235,10 @@ class TestCustomerModel(TestCase):
         customer.deserialize(data)
 
         self.assertEqual(customer.name, data["name"])
-        self.assertEqual(customer.address, data["address"])
+        self.assertEqual(customer.street, data["street"])
+        self.assertEqual(customer.city, data["city"])
+        self.assertEqual(customer.state, data["state"])
+        self.assertEqual(customer.postal_code, data["postal_code"])
 
     def test_deserialize_invalid_data(self):
         """It should raise a data validation error"""
@@ -224,6 +265,67 @@ class TestCustomerModel(TestCase):
             data,
         )
 
+    def test_deserialize_blank_fields(self):
+        """It should not deserialize a blank or non-string field"""
+        for field in ("name", "street", "city", "state", "postal_code"):
+            for value in BLANK_VALUES + [12345]:
+                with self.subTest(field=field, value=value):
+                    data = CustomerFactory().serialize()
+                    data[field] = value
+
+                    self.assertRaisesRegex(
+                        DataValidationError,
+                        f"{field} must be a non-blank string",
+                        Customer().deserialize,
+                        data,
+                    )
+
+    def test_deserialize_invalid_state(self):
+        """It should not deserialize an invalid state code"""
+        for value in ["New York", "XX", "N", "NYC", " NY"]:
+            with self.subTest(value=value):
+                data = CustomerFactory().serialize()
+                data["state"] = value
+
+                self.assertRaisesRegex(
+                    DataValidationError,
+                    "invalid state code",
+                    Customer().deserialize,
+                    data,
+                )
+
+    def test_deserialize_lowercase_state(self):
+        """It should store the state code uppercase"""
+        data = CustomerFactory().serialize()
+        data["state"] = "ny"
+
+        customer = Customer().deserialize(data)
+
+        self.assertEqual(customer.state, "NY")
+
+    def test_deserialize_invalid_postal_code(self):
+        """It should not deserialize an invalid postal code"""
+        for value in ["ABCDE", "1234", "123456", "12345-678", "12345 6789", "12345\n"]:
+            with self.subTest(value=value):
+                data = CustomerFactory().serialize()
+                data["postal_code"] = value
+
+                self.assertRaisesRegex(
+                    DataValidationError,
+                    "invalid postal_code",
+                    Customer().deserialize,
+                    data,
+                )
+
+    def test_deserialize_zip_plus_four(self):
+        """It should deserialize a ZIP+4 postal code"""
+        data = CustomerFactory().serialize()
+        data["postal_code"] = "10012-1234"
+
+        customer = Customer().deserialize(data)
+
+        self.assertEqual(customer.postal_code, "10012-1234")
+
     def test_all(self):
         """It should return a list of customer model"""
         customer1 = CustomerFactory()
@@ -249,7 +351,10 @@ class TestCustomerModel(TestCase):
 
         self.assertIsInstance(found, Customer)
         self.assertEqual(found.name, customer.name)
-        self.assertEqual(found.address, customer.address)
+        self.assertEqual(found.street, customer.street)
+        self.assertEqual(found.city, customer.city)
+        self.assertEqual(found.state, customer.state)
+        self.assertEqual(found.postal_code, customer.postal_code)
 
     def test_find_by_id_not_existing(self):
         """It should return None"""
