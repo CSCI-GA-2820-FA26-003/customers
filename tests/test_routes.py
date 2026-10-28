@@ -316,3 +316,60 @@ class TestCustomerService(TestCase):
         resp = self.client.get("/customers")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.get_json(), [])
+
+    ######################################################################
+    #  U P G R A D E   T E S T   C A S E S
+    ######################################################################
+
+    def test_upgrade_customer(self):
+        """It should upgrade a customer's membership level"""
+        customer = CustomerFactory()
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/upgrade", json={"target_level": "gold"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["id"], customer.id)
+        self.assertEqual(response.get_json()["membership_level"], "gold")
+
+    def test_upgrade_customer_invalid_level(self):
+        """It should reject an unknown membership level"""
+        customer = CustomerFactory()
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/upgrade", json={"target_level": "Premium"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Invalid membership level", response.get_json()["message"])
+
+    def test_upgrade_customer_cannot_downgrade(self):
+        """It should reject downgrading through the upgrade endpoint"""
+        customer = CustomerFactory()
+        customer.membership_level = "gold"
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/upgrade", json={"target_level": "silver"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn(
+            "Cannot downgrade membership via upgrade action",
+            response.get_json()["message"],
+        )
+
+    def test_upgrade_customer_not_found(self):
+        """It should return 404 after the customer has been deleted"""
+        customer = CustomerFactory()
+        customer.create()
+        customer_id = customer.id
+        customer.delete()
+
+        response = self.client.put(
+            f"/customers/{customer_id}/upgrade", json={"target_level": "silver"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

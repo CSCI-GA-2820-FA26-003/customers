@@ -98,3 +98,18 @@ def internal_server_error(error):
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+
+@app.errorhandler(status.HTTP_409_CONFLICT)
+def conflict(error):
+    """Handles conflicts with 409_CONFLICT"""
+    message = str(error)
+    app.logger.warning(message)
+    return (
+        jsonify(
+            status=status.HTTP_409_CONFLICT,
+            error="Conflict",
+            message=message,
+        ),
+        status.HTTP_409_CONFLICT,
+    )
