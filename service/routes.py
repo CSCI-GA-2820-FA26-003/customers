@@ -24,7 +24,12 @@ and Delete Customer
 from flask import jsonify, request, abort, url_for
 from flask import current_app as app  # Import Flask application
 
-from service.models import Customer
+from service.models import (
+    Customer,
+    MEMBERSHIP_LEVELS,
+    POSTAL_CODE_PATTERN,
+    US_STATE_CODES,
+)
 from service.common import status  # HTTP Status Codes
 
 
@@ -124,9 +129,41 @@ def delete_customers(customer_id):
 # list all customers
 @app.route("/customers", methods=["GET"])
 def list_customers():
-    """List All Customers"""
+    """List customers with optional query filters."""
     app.logger.info("Request to list all customers")
-    customers = Customer.all()
+    query = Customer.query
+
+    if "membership_level" in request.args:
+        membership_level = request.args["membership_level"].lower()
+        if membership_level not in MEMBERSHIP_LEVELS:
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                description="Invalid membership_level",
+            )
+        query = query.filter(Customer.membership_level == membership_level)
+
+    if "state" in request.args:
+        state = request.args["state"].upper()
+        if state not in US_STATE_CODES:
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                description="Invalid state code",
+            )
+        query = query.filter(Customer.state == state)
+
+    if "city" in request.args:
+        query = query.filter(Customer.city == request.args["city"])
+
+    if "postal_code" in request.args:
+        postal_code = request.args["postal_code"]
+        if not POSTAL_CODE_PATTERN.fullmatch(postal_code):
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                description="Invalid postal_code",
+            )
+        query = query.filter(Customer.postal_code == postal_code)
+
+    customers = query.all()
 
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers", len(results))

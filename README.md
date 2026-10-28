@@ -207,6 +207,19 @@ curl -i http://localhost:8080/customers
 
 Returns a JSON array of all customers with `200 OK`. If no customers exist, returns an empty array `[]`.
 
+To filter the list, use any of these query parameters:
+
+```bash
+curl -i "http://localhost:8080/customers?membership_level=gold"
+curl -i "http://localhost:8080/customers?state=NY&city=New%20York"
+curl -i "http://localhost:8080/customers?membership_level=gold&state=NY&city=New%20York&postal_code=10012"
+```
+
+Supported filters are `membership_level`, `state`, `city`, and `postal_code`.
+When multiple filters are provided, they are combined with `AND`; a customer
+must match every supplied filter. The response is still a JSON array. If no
+customer matches, the response is an empty array `[]`.
+
 Example response:
 
 ```json

@@ -316,3 +316,62 @@ class TestCustomerService(TestCase):
         resp = self.client.get("/customers")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.get_json(), [])
+
+    def test_list_customers_by_multiple_filters(self):
+        """It should combine membership, state, city, and postal code filters"""
+        matching_customer = CustomerFactory()
+        matching_customer.membership_level = "gold"
+        matching_customer.state = "NY"
+        matching_customer.city = "New York"
+        matching_customer.postal_code = "10012"
+        matching_customer.create()
+
+        other_customer = CustomerFactory()
+        other_customer.membership_level = "gold"
+        other_customer.state = "CA"
+        other_customer.create()
+
+        response = self.client.get(
+            "/customers",
+            query_string={
+                "membership_level": "gold",
+                "state": "NY",
+                "city": "New York",
+                "postal_code": "10012",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [matching_customer.serialize()])
+
+    def test_list_customers_by_single_filter(self):
+        """It should filter customers by one query parameter"""
+        matching_customer = CustomerFactory()
+        matching_customer.state = "NY"
+        matching_customer.create()
+
+        other_customer = CustomerFactory()
+        other_customer.state = "CA"
+        other_customer.create()
+
+        response = self.client.get(
+            "/customers",
+            query_string={"state": "ny"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [matching_customer.serialize()])
+
+    def test_list_customers_rejects_invalid_filter(self):
+        """It should reject invalid membership levels and postal codes"""
+        response = self.client.get(
+            "/customers",
+            query_string={"membership_level": "platinum"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.get(
+            "/customers",
+            query_string={"postal_code": "1234"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
