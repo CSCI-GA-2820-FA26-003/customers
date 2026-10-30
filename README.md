@@ -1,5 +1,7 @@
 # NYU DevOps Project Customer Service
 
+[![CI](https://github.com/CSCI-GA-2820-FA26-003/customers/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/CSCI-GA-2820-FA26-003/customers/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/gh/CSCI-GA-2820-FA26-003/customers/branch/master/graph/badge.svg)](https://app.codecov.io/gh/CSCI-GA-2820-FA26-003/customers/tree/master)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python-blue.svg)](https://python.org/)
 
