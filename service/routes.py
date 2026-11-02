@@ -69,26 +69,6 @@ def read_customer(customer_id):
     return jsonify(customer.serialize()), status.HTTP_200_OK
 
 
-# CREATE A NEW CUSTOMER
-@app.route("/customers", methods=["POST"])
-def create_customers():
-    """Create a Customer"""
-    app.logger.info("Request to Create a Customer...")
-    data = request.get_json()
-    customer = Customer()
-    customer.deserialize(data)
-    # Every new customer starts at bronze; the level can only be changed by an update
-    customer.membership_level = "bronze"
-    customer.create()
-    app.logger.info("Customer with new id [%s] created.", customer.id)
-    location_url = f"{request.base_url}/{customer.id}"
-    return (
-        jsonify(customer.serialize()),
-        status.HTTP_201_CREATED,
-        {"Location": location_url},
-    )
-
-
 # update customer
 @app.route("/customers/<int:customer_id>", methods=["PUT"])
 def update_customer(customer_id):
@@ -187,4 +167,5 @@ def downgrade_customer(customer_id):
     return jsonify(customer.serialize()), status.HTTP_200_OK
 
 
+from service import routes_create  # noqa: F401,E402 # pylint: disable=all
 from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
