@@ -14,7 +14,7 @@ DATABASE_URI = os.getenv(
 BASE_URL = "/customers"
 
 
-class TestCustomerService(TestCase):
+class TestCustomerUpdate(TestCase):
     """REST API Server Tests"""
 
     @classmethod
