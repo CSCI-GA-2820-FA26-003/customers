@@ -106,22 +106,6 @@ def update_customer(customer_id):
     return jsonify(customer.serialize()), status.HTTP_200_OK
 
 
-# DELETE A CUSTOMER
-@app.route("/customers/<int:customer_id>", methods=["DELETE"])
-def delete_customers(customer_id):
-    """Delete a Customer
-    This endpoint will delete a Customer based on the id specified in the path
-    """
-    app.logger.info("Request to Delete a customer with id [%s]", customer_id)
-
-    customer = Customer.find(customer_id)
-    if customer:
-        customer.delete()
-        app.logger.info("Customer with id [%s] was deleted", customer_id)
-
-    return "", status.HTTP_204_NO_CONTENT
-
-
 # list all customers
 @app.route("/customers", methods=["GET"])
 def list_customers():
@@ -201,3 +185,6 @@ def downgrade_customer(customer_id):
     customer.update()
     app.logger.info("Customer with id %s downgraded successfully", customer_id)
     return jsonify(customer.serialize()), status.HTTP_200_OK
+
+
+from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
