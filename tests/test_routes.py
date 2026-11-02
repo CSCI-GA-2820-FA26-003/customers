@@ -373,3 +373,55 @@ class TestCustomerService(TestCase):
             f"/customers/{customer_id}/upgrade", json={"target_level": "silver"}
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # DOWNGRADE TEST CASES
+
+    def test_downgrade_customer(self):
+        """It should downgrade a customer's membership level"""
+        customer = CustomerFactory()
+        customer.membership_level = "gold"
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/downgrade", json={"target_level": "bronze"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["id"], customer.id)
+        self.assertEqual(response.get_json()["membership_level"], "bronze")
+
+    def test_downgrade_customer_cannot_upgrade(self):
+        """It should reject upgrading through the downgrade endpoint"""
+        customer = CustomerFactory()
+        customer.membership_level = "bronze"
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/downgrade", json={"target_level": "gold"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn(
+            "Cannot upgrade membership via downgrade action",
+            response.get_json()["message"],
+        )
+
+    def test_downgrade_customer_invalid_level(self):
+        """It should reject an unknown membership level"""
+        customer = CustomerFactory()
+        customer.membership_level = "gold"
+        customer.create()
+
+        response = self.client.put(
+            f"/customers/{customer.id}/downgrade", json={"target_level": "Premium"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Invalid membership level", response.get_json()["message"])
+
+    def test_downgrade_customer_not_found(self):
+        """It should return 404 when the customer does not exist"""
+        response = self.client.put(
+            "/customers/0/downgrade", json={"target_level": "bronze"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
