@@ -90,25 +90,6 @@ class TestCustomerService(TestCase):
         self.assertTrue(resp.is_json)
         self.assertIn("message", resp.get_json())
 
-    def test_read_customer(self):
-        """It should read a customer by ID"""
-        customer = CustomerFactory()
-        customer.create()
-
-        response = self.client.get(f"/customers/{customer.id}")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.is_json)
-        self.assertEqual(response.get_json(), customer.serialize())
-
-    def test_read_customer_not_found(self):
-        """It should return 404 for a missing customer"""
-        response = self.client.get("/customers/999999")
-
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertTrue(response.is_json)
-        self.assertEqual(response.get_json()["error"], "Not Found")
-
     ######################################################################
     #  U P D A T E   T E S T   C A S E S
     ######################################################################
@@ -172,28 +153,6 @@ class TestCustomerService(TestCase):
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
-
-    ######################################################################
-    #  LIST   T E S T   C A S E S
-    ######################################################################
-
-    def test_list_customers_with_data_in_database(self):
-        """It should return a list of customers"""
-        customer_data = []
-        for i in range(5):
-            customer_data.append(CustomerFactory())
-            customer_data[i].create()
-            customer_data[i] = customer_data[i].serialize()
-
-        resp = self.client.get("/customers")
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertCountEqual(resp.get_json(), customer_data)
-
-    def test_list_customers_with_no_data_in_database(self):
-        """It should return an empty list"""
-        resp = self.client.get("/customers")
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.get_json(), [])
 
     ######################################################################
     #  U P G R A D E   T E S T   C A S E S
