@@ -1,5 +1,6 @@
 """Customer update route tests"""
 
+# pylint: disable=duplicate-code
 import os
 import logging
 from unittest import TestCase
