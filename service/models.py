@@ -204,3 +204,9 @@ class Customer(db.Model):
         """
         logger.info("Processing name query for %s ...", name)
         return cls.query.filter(cls.name == name)
+
+    @classmethod
+    def find_by_filters(cls, filters):
+        """Return customers matching all supplied filters."""
+        logger.info("Processing customer query with filters: %s", filters)
+        return cls.query.filter_by(**filters).all()
