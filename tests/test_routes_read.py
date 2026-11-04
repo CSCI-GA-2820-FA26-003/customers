@@ -84,3 +84,91 @@ class TestCustomerRead(TestCase):
         resp = self.client.get("/customers")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.get_json(), [])
+
+    def test_query_customers_by_single_field(self):
+        """It should filter by state, membership level, or postal code."""
+        matching = CustomerFactory(
+            state="NY",
+            postal_code="10012",
+            membership_level="gold",
+        )
+        matching.create()
+        CustomerFactory(
+            state="CA",
+            postal_code="90001",
+            membership_level="bronze",
+        ).create()
+
+        for filters in (
+            {"state": "ny"},
+            {"membership_level": "gold"},
+            {"postal_code": "10012"},
+        ):
+            with self.subTest(filters=filters):
+                response = self.client.get("/customers", query_string=filters)
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(response.get_json(), [matching.serialize()])
+
+    def test_query_customers_by_combined_filters(self):
+        """It should match every supplied filter."""
+        matching = CustomerFactory(city="Albany", state="NY", membership_level="gold")
+        matching.create()
+        CustomerFactory(city="Albany", state="GA", membership_level="gold").create()
+        CustomerFactory(city="Albany", state="NY", membership_level="bronze").create()
+
+        response = self.client.get(
+            "/customers",
+            query_string={
+                "city": "Albany",
+                "state": "NY",
+                "membership_level": "gold",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [matching.serialize()])
+
+    def test_query_customers_city_requires_state(self):
+        """It should reject a city query without a state."""
+        response = self.client.get("/customers", query_string={"city": "Albany"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("state is required", response.get_json()["message"])
+
+    def test_query_customers_no_match(self):
+        """It should return an empty list when no customers match."""
+        CustomerFactory(state="NY").create()
+
+        response = self.client.get("/customers", query_string={"state": "CA"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [])
+
+    def test_query_customers_invalid_values(self):
+        """It should reject invalid filter values."""
+        for field, value in (
+            ("state", "XX"),
+            ("membership_level", "platinum"),
+            ("postal_code", "123"),
+        ):
+            with self.subTest(field=field):
+                response = self.client.get("/customers", query_string={field: value})
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(f"invalid {field}", response.get_json()["message"])
+
+    def test_query_customers_blank_values(self):
+        """It should reject empty or whitespace-only filter values."""
+        for field in ("city", "state", "membership_level", "postal_code"):
+            for value in ("", "   "):
+                with self.subTest(field=field, value=value):
+                    response = self.client.get(
+                        "/customers", query_string={field: value}
+                    )
+
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn(
+                        f"{field} must not be blank",
+                        response.get_json()["message"],
+                    )

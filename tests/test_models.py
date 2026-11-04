@@ -441,3 +441,61 @@ class TestCustomerModel(TestCase):
             [c.serialize() for c in found_list.all()],
             [c.serialize() for c in customers],
         )
+
+    def test_find_by_filters(self):
+        """It should return customers matching all filters."""
+        matching = CustomerFactory(
+            city="Albany",
+            state="NY",
+            membership_level="gold",
+        )
+        matching.create()
+
+        # Same city and membership, but a different state
+        CustomerFactory(
+            city="Albany",
+            state="GA",
+            membership_level="gold",
+        ).create()
+
+        # Same city and state, but a different membership
+        CustomerFactory(
+            city="Albany",
+            state="NY",
+            membership_level="bronze",
+        ).create()
+
+        found = Customer.find_by_filters(
+            {
+                "city": "Albany",
+                "state": "NY",
+                "membership_level": "gold",
+            }
+        )
+
+        self.assertEqual(
+            [customer.id for customer in found],
+            [matching.id],
+        )
+
+    def test_find_by_filters_no_match(self):
+        """It should return an empty list when no customers match."""
+        CustomerFactory(state="NY").create()
+
+        found = Customer.find_by_filters({"state": "CA"})
+
+        self.assertEqual(found, [])
+
+    def test_find_by_filters_empty(self):
+        """It should return all customers when no filters are supplied."""
+        first = CustomerFactory()
+        first.create()
+        second = CustomerFactory()
+        second.create()
+
+        found = Customer.find_by_filters({})
+
+        self.assertCountEqual(
+            [customer.id for customer in found],
+            [first.id, second.id],
+        )
