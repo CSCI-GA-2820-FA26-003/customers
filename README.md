@@ -41,27 +41,6 @@ honcho start
 
 The API is available at http://localhost:8080. Request and response bodies use JSON. Requests with a JSON body must include the `Content-Type: application/json` header.
 
-### Deploy with Kubernetes
-
-For the coursework environment, deploy all Kubernetes resources, including
-the Secret, with:
-
-```bash
-make deploy
-```
-
-The PostgreSQL Secret is included in `k8s/postgres/secret.yaml`. It can also
-be created manually with:
-
-```bash
-kubectl create secret generic postgres-secret \
-  --from-literal=username=postgres \
-  --from-literal=password=pgs3cr3t \
-```
-These credentials are for coursework only; do not
-commit real production credentials. Inject production credentials through a
-secret manager instead.
-
 ## Database Structure
 
 The current database structure is as follows. Only US addresses are supported.
