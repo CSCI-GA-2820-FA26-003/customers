@@ -33,7 +33,10 @@ spec:
                   name: postgres-secret
                   key: password
             - name: POSTGRES_DB
-              value: customers
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: database
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
