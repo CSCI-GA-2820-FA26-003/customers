@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: customers
+  labels:
+    app: customers
+spec:
+  type: ClusterIP
+  selector:
+    app: customers
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
