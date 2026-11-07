@@ -38,7 +38,7 @@ def index():
 ######################################################################
 
 
-# from service import routes_create  # noqa: F401,E402 # pylint: disable=all
-# from service import routes_read  # noqa: F401,E402 # pylint: disable=all
-# from service import routes_update  # noqa: F401,E402 # pylint: disable=all
-# from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
+from service import routes_create  # noqa: F401,E402 # pylint: disable=all
+from service import routes_read  # noqa: F401,E402 # pylint: disable=all
+from service import routes_update  # noqa: F401,E402 # pylint: disable=all
+from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
