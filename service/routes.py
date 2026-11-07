@@ -21,10 +21,7 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Customer
 """
 
-from flask import jsonify, url_for
 from flask import current_app as app  # Import Flask application
-
-from service.common import status  # HTTP Status Codes
 
 
 ######################################################################
@@ -33,19 +30,7 @@ from service.common import status  # HTTP Status Codes
 @app.route("/")
 def index():
     """Root URL response"""
-    app.logger.info("Request for Root URL")
-    return (
-        jsonify(
-            name="Customer REST API Service",
-            version="1.0",
-            description=(
-                "Create, read, update, delete and list the customers "
-                "that are registered in the e-commerce store"
-            ),
-            paths=url_for("list_customers", _external=True),
-        ),
-        status.HTTP_200_OK,
-    )
+    return app.send_static_file("index.html")
 
 
 ######################################################################
