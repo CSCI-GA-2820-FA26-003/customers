@@ -1,8 +1,10 @@
 # These can be overidden with env vars.
 REGISTRY ?= cluster-registry:5000
+HOST_REGISTRY ?= localhost:5000
 IMAGE_NAME ?= customers
 IMAGE_TAG ?= 1.0
 IMAGE ?= $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+HOST_IMAGE ?= $(HOST_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 PLATFORM ?= "linux/amd64,linux/arm64"
 CLUSTER ?= nyu-devops
 
@@ -93,8 +95,9 @@ build:	## Build the project container image for local platform
 
 .PHONY: push
 push:	## Push the image to the container registry
-	$(info Pushing $(IMAGE)...)
-	docker push $(IMAGE)
+	$(info Pushing $(HOST_IMAGE)...)
+	docker tag $(IMAGE) $(HOST_IMAGE)
+	docker push $(HOST_IMAGE)
 
 .PHONY: buildx
 buildx:	## Build multi-platform image with buildx
