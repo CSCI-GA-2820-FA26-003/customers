@@ -21,10 +21,7 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Customer
 """
 
-from flask import jsonify, url_for
 from flask import current_app as app  # Import Flask application
-
-from service.common import status  # HTTP Status Codes
 
 
 ######################################################################
@@ -41,7 +38,7 @@ def index():
 ######################################################################
 
 
-from service import routes_create  # noqa: F401,E402 # pylint: disable=all
-from service import routes_read  # noqa: F401,E402 # pylint: disable=all
-from service import routes_update  # noqa: F401,E402 # pylint: disable=all
-from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
+# from service import routes_create  # noqa: F401,E402 # pylint: disable=all
+# from service import routes_read  # noqa: F401,E402 # pylint: disable=all
+# from service import routes_update  # noqa: F401,E402 # pylint: disable=all
+# from service import routes_delete  # noqa: F401,E402 # pylint: disable=all
