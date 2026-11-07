@@ -33,19 +33,7 @@ from service.common import status  # HTTP Status Codes
 @app.route("/")
 def index():
     """Root URL response"""
-    app.logger.info("Request for Root URL")
-    return (
-        jsonify(
-            name="Customer REST API Service",
-            version="1.0",
-            description=(
-                "Create, read, update, delete and list the customers "
-                "that are registered in the e-commerce store"
-            ),
-            paths=url_for("list_customers", _external=True),
-        ),
-        status.HTTP_200_OK,
-    )
+    return app.send_static_file("index.html")
 
 
 ######################################################################
