@@ -2,11 +2,14 @@
 # This code works because of the following naming convention:
 #
 # 1. UI element ID begins with "customer_" and follows snake_case
-#  naming convention. For example, the Postal Code field has an id of
+#  naming convention. For example, the "Postal Code" field has an id of
 # 'customer_postal_code'.
 #
-# 2. The buttons have an id followed by '-btn' so the Clear button has
+# 2. The buttons have an id followed by '-btn', so the "Clear" button has
 #  an id of 'customer_clear-btn'.
+#
+# 3. The forms have an id followed by '-form', so the "Create Customer"
+# form has an id of 'customer_create-form'.
 ##################################################################
 
 # import re
