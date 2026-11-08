@@ -14,7 +14,7 @@ Scenario: Create a Customer
     And I set the "Street" to "50 West 4th Street"
     And I set the "Postal Code" to "10012"
     And I press the "Create" button
-    Then I should see a success message for customer "Emily Chen"
+    Then I should see a successful "created" message for customer "Emily Chen"
     When I press the "Clear" button
     Then the "Name" field should be empty
     And the "State" field should be empty
