@@ -76,7 +76,7 @@ class TestCustomerService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn("text/html", resp.content_type)
-        self.assertIn(b"Customers", resp.data)
+        self.assertIn(b"Customer Admin Portal", resp.data)
 
     def test_index_method_not_allowed(self):
         """It should return a 405 when the root URL is called with a method that is not allowed"""

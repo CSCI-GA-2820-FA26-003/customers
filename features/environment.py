@@ -24,6 +24,7 @@ def before_all(context):
     context.driver.set_window_size(1280, 1300)
     context.config.setup_logging()
 
+
 def after_all(context):
     """Executed once after all tests"""
     context.driver.quit()
