@@ -84,3 +84,9 @@ class TestCustomerService(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertTrue(resp.is_json)
         self.assertIn(b"Method Not Allowed", resp.data)
+
+    def test_health(self):
+        """It should return the health status"""
+        resp = self.client.get("/health")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json(), {"status": "OK"})

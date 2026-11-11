@@ -21,7 +21,8 @@ This service implements a REST API that allows you to Create, Read, Update
 and Delete Customer
 """
 
-from flask import current_app as app  # Import Flask application
+from flask import current_app as app, jsonify  # Import Flask application
+from service.common import status
 
 
 ######################################################################
@@ -31,6 +32,15 @@ from flask import current_app as app  # Import Flask application
 def index():
     """Root URL response"""
     return app.send_static_file("index.html")
+
+
+######################################################################
+# GET HEALTH
+######################################################################
+@app.route("/health")
+def health():
+    """Kubernetes health check"""
+    return jsonify({"status": "OK"}), status.HTTP_200_OK
 
 
 ######################################################################
