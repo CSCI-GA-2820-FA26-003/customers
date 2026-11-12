@@ -219,13 +219,11 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
             first_name (string): the first name of the Customers you want to match
             last_name (string): the last name of the Customers you want to match
         """
-        logger.info(
-            "Processing full name query for %s %s ...", first_name, last_name
-        )
+        logger.info("Processing full name query for %s %s ...", first_name, last_name)
         return cls.query.filter(
             cls.first_name == first_name, cls.last_name == last_name
         )
-    
+
     @classmethod
     def find_by_filters(cls, filters):
         """Return customers matching all supplied filters."""

@@ -4,7 +4,8 @@ $(function () {
     // ****************************************
 
     function update_form_data(customer) {
-        $("#customer_name").val(customer.name);
+        $("#customer_first_name").val(customer.first_name);
+        $("#customer_last_name").val(customer.last_name);
         $("#customer_street").val(customer.street);
         $("#customer_city").val(customer.city);
         $("#customer_state").val(customer.state);
@@ -12,7 +13,8 @@ $(function () {
     }
 
     function clear_form_data() {
-        $("#customer_name").val("");
+        $("#customer_first_name").val("");
+        $("#customer_last_name").val("");
         $("#customer_street").val("");
         $("#customer_city").val("");
         $("#customer_state").val("");
@@ -32,7 +34,8 @@ $(function () {
         event.preventDefault();
 
         const data = {
-            name: $("#customer_name").val(),
+            first_name: $("#customer_first_name").val(),
+            last_name: $("#customer_last_name").val(),
             street: $("#customer_street").val(),
             city: $("#customer_city").val(),
             state: $("#customer_state").val(),
@@ -47,7 +50,7 @@ $(function () {
         })
             .done(function (response) {
                 update_form_data(response);
-                alert(`Customer ${response.name} was successfully created!`);
+                alert(`Customer ${response.first_name} ${response.last_name} was successfully created!`);
             })
             .fail(show_error);
     });
