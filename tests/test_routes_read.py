@@ -86,11 +86,13 @@ class TestCustomerRead(TestCase):
         self.assertEqual(resp.get_json(), [])
 
     def test_query_customers_by_single_field(self):
-        """It should filter by state, membership level, or postal code."""
+        """It should filter by state, membership level, postal code, or name."""
         matching = CustomerFactory(
             state="NY",
             postal_code="10012",
             membership_level="gold",
+            last_name="first_name",
+            first_name="last_name",
         )
         matching.create()
         CustomerFactory(
@@ -103,6 +105,8 @@ class TestCustomerRead(TestCase):
             {"state": "ny"},
             {"membership_level": "gold"},
             {"postal_code": "10012"},
+            {"last_name": "first_name"},
+            {"first_name": "last_name"},
         ):
             with self.subTest(filters=filters):
                 response = self.client.get("/customers", query_string=filters)
@@ -160,7 +164,14 @@ class TestCustomerRead(TestCase):
 
     def test_query_customers_blank_values(self):
         """It should reject empty or whitespace-only filter values."""
-        for field in ("city", "state", "membership_level", "postal_code"):
+        for field in (
+            "city",
+            "state",
+            "membership_level",
+            "postal_code",
+            "last_name",
+            "first_name",
+        ):
             for value in ("", "   "):
                 with self.subTest(field=field, value=value):
                     response = self.client.get(

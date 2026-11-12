@@ -46,7 +46,14 @@ def customer_query_filters():
     """Extract and validate customer query parameters."""
     filters = {}
 
-    for field in ("membership_level", "state", "city", "postal_code"):
+    for field in (
+        "membership_level",
+        "state",
+        "city",
+        "postal_code",
+        "last_name",
+        "first_name",
+    ):
         if field in request.args:
             value = request.args[field]
             if not value.strip():
