@@ -55,20 +55,17 @@ class TestCustomerUpdate(TestCase):
         customer.create()
 
         customer_id = customer.id
-        new_name = "Updated Name"
+        new_first_name = "Updated First Name"
+        new_last_name = "Updated Last Name"
         new_street = "Updated Street"
         updated_data = customer.serialize()
-        updated_data["name"] = new_name
+        updated_data["first_name"] = new_first_name
+        updated_data["last_name"] = new_last_name
         updated_data["street"] = new_street
-        updated_data["membership_level"] = "gold"
 
         resp = self.client.put(f"/customers/{customer_id}", json=updated_data)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.json["id"], customer_id)
-        self.assertEqual(resp.json["name"], new_name)
-        self.assertEqual(resp.json["street"], new_street)
-        self.assertEqual(resp.json["membership_level"], "gold")
-        self.assertEqual(Customer.find(customer_id).membership_level, "gold")
+        self.assertEqual(updated_data, resp.get_json())
 
     def test_update_customer_not_found(self):
         """It should return 404 Not Found when updating a non-existent customer"""
@@ -97,7 +94,8 @@ class TestCustomerUpdate(TestCase):
 
         customer_id = customer.id
         invalid_data = {
-            "name": None,
+            "first_name": None,
+            "last_name": None,
             "street": None,
             "city": None,
             "state": None,
