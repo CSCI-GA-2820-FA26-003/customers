@@ -81,7 +81,8 @@ class TestCustomerModel(TestCase):
         found = Customer.all()
         self.assertEqual(len(found), 1)
         data = Customer.find(customer.id)
-        self.assertEqual(data.name, customer.name)
+        self.assertEqual(data.first_name, customer.first_name)
+        self.assertEqual(data.last_name, customer.last_name)
         self.assertEqual(data.street, customer.street)
         self.assertEqual(data.city, customer.city)
         self.assertEqual(data.state, customer.state)
@@ -103,17 +104,20 @@ class TestCustomerModel(TestCase):
         """It should update a customer"""
         customer = CustomerFactory()
         customer.create()
-        new_name = "A whole new name"
+        new_first_name = "A whole new first name"
+        new_last_name = "A whole new last name"
         new_street = "A whole new street"
         original_id = customer.id
 
-        customer.name = new_name
+        customer.first_name = new_first_name
+        customer.last_name = new_last_name
         customer.street = new_street
         customer.update()
 
         self.assertEqual(customer.id, original_id)
         found = Customer.find(customer.id)
-        self.assertEqual(found.name, new_name)
+        self.assertEqual(found.first_name, new_first_name)
+        self.assertEqual(found.last_name, new_last_name)
         self.assertEqual(found.street, new_street)
 
     def test_delete_customer(self):
@@ -126,12 +130,21 @@ class TestCustomerModel(TestCase):
         found = Customer.find(customer.id)
         self.assertIsNone(found)
 
-    def test_create_invalid_name(self):
-        """It should not create a customer with no name or a blank name"""
+    def test_create_invalid_first_name(self):
+        """It should not create a customer with no first name or a blank first name"""
         for value in BLANK_VALUES:
             with self.subTest(value=value):
                 customer = CustomerFactory()
-                customer.name = value
+                customer.first_name = value
+
+                self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_invalid_last_name(self):
+        """It should not create a customer with no last name or a blank last name"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.last_name = value
 
                 self.assertRaises(DataValidationError, customer.create)
 
@@ -178,11 +191,19 @@ class TestCustomerModel(TestCase):
 
         self.assertRaises(DataValidationError, customer.create)
 
-    def test_update_no_name(self):
-        """It should not update a customer's name to none"""
+    def test_update_no_first_name(self):
+        """It should not update a customer's first name to none"""
         customer = CustomerFactory()
         customer.create()
-        customer.name = None
+        customer.first_name = None
+
+        self.assertRaises(DataValidationError, customer.update)
+
+    def test_update_no_last_name(self):
+        """It should not update a customer's last name to none"""
+        customer = CustomerFactory()
+        customer.create()
+        customer.last_name = None
 
         self.assertRaises(DataValidationError, customer.update)
 
@@ -240,7 +261,8 @@ class TestCustomerModel(TestCase):
 
         self.assertIsInstance(data, dict)
         self.assertEqual(data["id"], customer.id)
-        self.assertEqual(data["name"], customer.name)
+        self.assertEqual(data["first_name"], customer.first_name)
+        self.assertEqual(data["last_name"], customer.last_name)
         self.assertEqual(data["street"], customer.street)
         self.assertEqual(data["city"], customer.city)
         self.assertEqual(data["state"], customer.state)
@@ -255,7 +277,8 @@ class TestCustomerModel(TestCase):
 
         customer.deserialize(data)
 
-        self.assertEqual(customer.name, data["name"])
+        self.assertEqual(customer.first_name, data["first_name"])
+        self.assertEqual(customer.last_name, data["last_name"])
         self.assertEqual(customer.street, data["street"])
         self.assertEqual(customer.city, data["city"])
         self.assertEqual(customer.state, data["state"])
@@ -276,12 +299,12 @@ class TestCustomerModel(TestCase):
     def test_deserialize_invalid_data(self):
         """It should raise a data validation error"""
         data = CustomerFactory().serialize()
-        del data["name"]
+        del data["first_name"]
         customer = Customer()
 
         self.assertRaisesRegex(
             DataValidationError,
-            "Invalid Customer: missing name",
+            "Invalid Customer: missing first_name",
             customer.deserialize,
             data,
         )
@@ -301,7 +324,8 @@ class TestCustomerModel(TestCase):
     def test_deserialize_blank_fields(self):
         """It should not deserialize a blank or non-string field"""
         for field in (
-            "name",
+            "first_name",
+            "last_name",
             "street",
             "city",
             "state",
@@ -407,7 +431,8 @@ class TestCustomerModel(TestCase):
         found = Customer.find(customer.id)
 
         self.assertIsInstance(found, Customer)
-        self.assertEqual(found.name, customer.name)
+        self.assertEqual(found.first_name, customer.first_name)
+        self.assertEqual(found.last_name, customer.last_name)
         self.assertEqual(found.street, customer.street)
         self.assertEqual(found.city, customer.city)
         self.assertEqual(found.state, customer.state)
@@ -424,18 +449,39 @@ class TestCustomerModel(TestCase):
 
         self.assertIsNone(found)
 
-    def test_find_by_name(self):
+    def test_find_by_last_name(self):
         """It should return a customer model"""
         customer1 = CustomerFactory()
         customer1.create()
         customer2 = CustomerFactory()
-        customer2.name = customer1.name
+        customer2.last_name = customer1.last_name
         customer2.create()
         customer3 = CustomerFactory()
         customer3.create()
         customers = [customer1, customer2]
 
-        found_list = Customer.find_by_name(customer1.name)
+        found_list = Customer.find_by_last_name(customer1.last_name)
+
+        self.assertCountEqual(
+            [c.serialize() for c in found_list.all()],
+            [c.serialize() for c in customers],
+        )
+
+    def test_find_by_full_name(self):
+        """It should return a customer model"""
+        customer1 = CustomerFactory()
+        customer1.create()
+        customer2 = CustomerFactory()
+        customer2.first_name = customer1.first_name
+        customer2.last_name = customer1.last_name
+        customer2.create()
+        customer3 = CustomerFactory()
+        customer3.create()
+        customers = [customer1, customer2]
+
+        found_list = Customer.find_by_full_name(
+            customer1.first_name, customer1.last_name
+        )
 
         self.assertCountEqual(
             [c.serialize() for c in found_list.all()],
