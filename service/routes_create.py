@@ -14,7 +14,7 @@ def create_customers():
     data = request.get_json()
     customer = Customer()
     customer.deserialize(data)
-    # Every new customer starts at bronze; the level can only be changed by an update
+    # Every new customer starts at bronze; the level can only be changed by upgrade/downgrade endpoints
     customer.membership_level = "bronze"
     customer.create()
     app.logger.info("Customer with new id [%s] created.", customer.id)

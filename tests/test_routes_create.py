@@ -50,15 +50,13 @@ class TestCustomerCreate(TestCase):
         """It should create a new customer"""
         test_customer = CustomerFactory()
         response = self.client.post(BASE_URL, json=test_customer.serialize())
+        self.assertTrue(response.is_json)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIsNotNone(response.headers.get("Location"))
         new_customer = response.get_json()
-        self.assertEqual(new_customer["name"], test_customer.name)
-        self.assertEqual(new_customer["street"], test_customer.street)
-        self.assertEqual(new_customer["city"], test_customer.city)
-        self.assertEqual(new_customer["state"], test_customer.state)
-        self.assertEqual(new_customer["postal_code"], test_customer.postal_code)
-        self.assertEqual(new_customer["membership_level"], "bronze")
+        expected_customer = test_customer.serialize()
+        expected_customer["id"] = new_customer["id"]
+        self.assertEqual(new_customer, expected_customer)
 
     def test_create_customer_default_membership_level(self):
         """It should create a new customer with bronze membership level by default"""

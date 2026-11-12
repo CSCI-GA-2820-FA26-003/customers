@@ -34,7 +34,7 @@ class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
 
 
-class Customer(db.Model):
+class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
     """
     Class that represents a customer
     """
@@ -45,7 +45,8 @@ class Customer(db.Model):
 
     __tablename__ = "customers"
     __table_args__ = (
-        db.CheckConstraint(r"name ~ '\S'", name="customers_name_not_blank"),
+        db.CheckConstraint(r"first_name ~ '\S'", name="customers_first_name_not_blank"),
+        db.CheckConstraint(r"last_name ~ '\S'", name="customers_last_name_not_blank"),
         db.CheckConstraint(r"street ~ '\S'", name="customers_street_not_blank"),
         db.CheckConstraint(r"city ~ '\S'", name="customers_city_not_blank"),
         db.CheckConstraint(r"state ~ '\S'", name="customers_state_not_blank"),
@@ -58,7 +59,8 @@ class Customer(db.Model):
         ),
     )
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63), nullable=False)
+    first_name = db.Column(db.String(63), nullable=False)
+    last_name = db.Column(db.String(63), nullable=False)
     street = db.Column(db.String(255), nullable=False)
     city = db.Column(db.String(63), nullable=False)
     state = db.Column(db.String(2), nullable=False)
@@ -66,14 +68,14 @@ class Customer(db.Model):
     membership_level = db.Column(db.String(15), nullable=False, server_default="bronze")
 
     def __repr__(self):
-        return f"<Customer name={self.name} id=[{self.id}]>"
+        return f"<Customer first_name={self.first_name} last_name={self.last_name} id=[{self.id}]>"
 
     def create(self):
         """
         Creates a Customer to the database
         """
         try:
-            logger.info("Creating %s", self.name)
+            logger.info("Creating %s %s", self.first_name, self.last_name)
             self.id = None  # pylint: disable=invalid-name
             db.session.add(self)
             db.session.commit()
@@ -87,7 +89,7 @@ class Customer(db.Model):
         Updates a Customer to the database
         """
         try:
-            logger.info("Saving %s", self.name)
+            logger.info("Saving %s %s", self.first_name, self.last_name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -97,7 +99,7 @@ class Customer(db.Model):
     def delete(self):
         """Removes a Customer from the data store"""
         try:
-            logger.info("Deleting %s", self.name)
+            logger.info("Deleting %s %s", self.first_name, self.last_name)
             db.session.delete(self)
             db.session.commit()
         except Exception as e:
@@ -109,7 +111,8 @@ class Customer(db.Model):
         """Serializes a Customer into a dictionary"""
         return {
             "id": self.id,
-            "name": self.name,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
             "street": self.street,
             "city": self.city,
             "state": self.state,
@@ -125,7 +128,8 @@ class Customer(db.Model):
             data (dict): A dictionary containing the resource data
         """
         try:
-            name = data["name"]
+            first_name = data["first_name"]
+            last_name = data["last_name"]
             street = data["street"]
             city = data["city"]
             state = data["state"]
@@ -148,7 +152,8 @@ class Customer(db.Model):
 
         # Validate everything before assigning so a failed update leaves the record untouched
         for field, value in (
-            ("name", name),
+            ("first_name", first_name),
+            ("last_name", last_name),
             ("street", street),
             ("city", city),
             ("state", state),
@@ -171,7 +176,8 @@ class Customer(db.Model):
                 f"Invalid Customer: invalid membership_level {membership_level}"
             )
 
-        self.name = name
+        self.first_name = first_name
+        self.last_name = last_name
         self.street = street
         self.city = city
         self.state = state
@@ -196,14 +202,27 @@ class Customer(db.Model):
         return cls.query.session.get(cls, by_id)
 
     @classmethod
-    def find_by_name(cls, name):
-        """Returns all Customers with the given name
+    def find_by_last_name(cls, last_name):
+        """Returns all Customers with the given last name
 
         Args:
-            name (string): the name of the Customers you want to match
+            last_name (string): the last name of the Customers you want to match
         """
-        logger.info("Processing name query for %s ...", name)
-        return cls.query.filter(cls.name == name)
+        logger.info("Processing last name query for %s ...", last_name)
+        return cls.query.filter(cls.last_name == last_name)
+
+    @classmethod
+    def find_by_full_name(cls, first_name, last_name):
+        """Returns all Customers with the given first and last name
+
+        Args:
+            first_name (string): the first name of the Customers you want to match
+            last_name (string): the last name of the Customers you want to match
+        """
+        logger.info("Processing full name query for %s %s ...", first_name, last_name)
+        return cls.query.filter(
+            cls.first_name == first_name, cls.last_name == last_name
+        )
 
     @classmethod
     def find_by_filters(cls, filters):
