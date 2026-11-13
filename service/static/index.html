@@ -13,61 +13,98 @@
     <h1>Customer Admin Portal</h1>
 
     <nav aria-label="Main navigation">
-      <ul class="nav nav-pills">
-        <li><a href="#create-customer">Create Customer</a></li>
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="active" role="presentation">
+          <a id="create-tab" href="#create-customer" data-toggle="tab"
+             role="tab" aria-controls="create-customer">Create Customer</a>
+        </li>
+        <li role="presentation">
+          <a id="search-tab" href="#read-customer" data-toggle="tab"
+             role="tab" aria-controls="read-customer">Search Customer</a>
+        </li>
       </ul>
     </nav>
 
-    <section id="create-customer" aria-labelledby="customer_create-heading">
-      <h2 id="customer_create-heading">Create New Customer</h2>
-      <form id="customer_create-form" class="form-horizontal">
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_first_name">First Name</label>
-          <div class="col-sm-6">
-            <input id="customer_first_name" name="first_name" class="form-control" type="text" required>
+    <div class="tab-content">
+      <section id="create-customer" class="tab-pane active" role="tabpanel" aria-labelledby="create-tab">
+        <h2 id="customer_create-heading">Create New Customer</h2>
+        <form id="customer_create-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_first_name">First Name</label>
+            <div class="col-sm-6">
+              <input id="customer_first_name" name="first_name" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_last_name">Last Name</label>
-          <div class="col-sm-6">
-            <input id="customer_last_name" name="last_name" class="form-control" type="text" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_last_name">Last Name</label>
+            <div class="col-sm-6">
+              <input id="customer_last_name" name="last_name" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_street">Street</label>
-          <div class="col-sm-6">
-            <input id="customer_street" name="street" class="form-control" type="text" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_street">Street</label>
+            <div class="col-sm-6">
+              <input id="customer_street" name="street" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_state">State</label>
-          <div class="col-sm-6">
-            <select id="customer_state" name="state" class="form-control" required></select>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_state">State</label>
+            <div class="col-sm-6">
+              <select id="customer_state" name="state" class="form-control" required></select>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_city">City</label>
-          <div class="col-sm-6">
-            <input id="customer_city" name="city" class="form-control" type="text" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_city">City</label>
+            <div class="col-sm-6">
+              <input id="customer_city" name="city" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_postal_code">Postal Code</label>
-          <div class="col-sm-6">
-            <input id="customer_postal_code" name="postal_code" class="form-control" type="text" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_postal_code">Postal Code</label>
+            <div class="col-sm-6">
+              <input id="customer_postal_code" name="postal_code" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <div class="col-sm-offset-2 col-sm-6">
-            <button id="customer_clear-btn" class="btn btn-default" type="button">Clear</button>
-            <button id="customer_create-btn" class="btn btn-primary" type="submit">Create</button>
+          <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-6">
+              <button id="customer_clear-btn" class="btn btn-default" type="button">Clear</button>
+              <button id="customer_create-btn" class="btn btn-primary" type="submit">Create</button>
+            </div>
           </div>
+        </form>
+      </section>
+      <section id="read-customer" class="tab-pane" role="tabpanel" aria-labelledby="search-tab">
+        <h2 id="customer_read-heading">Read Customer</h2>
+        <form id="customer_read-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_id">Customer ID</label>
+            <div class="col-sm-6">
+              <input id="customer_id" class="form-control" type="text"
+                    inputmode="numeric" pattern="[1-9][0-9]*" required>
+            </div>
+            <div class="col-sm-2">
+              <button id="customer_retrieve-btn" class="btn btn-primary" type="submit">
+                Retrieve
+              </button>
+            </div>
+          </div>
+        </form>
+        <div id="customer_result" hidden>
+          <h3>Customer Details</h3>
+          <dl class="dl-horizontal">
+            <dt>First Name</dt><dd data-field="first_name"></dd>
+            <dt>Last Name</dt><dd data-field="last_name"></dd>
+            <dt>Street</dt><dd data-field="street"></dd>
+            <dt>City</dt><dd data-field="city"></dd>
+            <dt>State</dt><dd data-field="state"></dd>
+            <dt>Postal Code</dt><dd data-field="postal_code"></dd>
+            <dt>Membership Level</dt><dd data-field="membership_level"></dd>
+          </dl>
         </div>
-      </form>
-    </section>
+      </section>
+    </div>
   </div>
-
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
   <script src="/static/js/customer_api.js"></script>

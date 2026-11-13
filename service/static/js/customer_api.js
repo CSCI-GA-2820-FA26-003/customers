@@ -95,4 +95,39 @@ $(function () {
     states.forEach(function (state) {
         stateSelect.append(new Option(state[0], state[0]));
     });
+
+    // ****************************************
+    // Read a Customer
+    // ****************************************
+
+    $("#customer_read-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_id").val().trim();
+        const result = $("#customer_result");
+        const button = $("#customer_retrieve-btn");
+
+        result.prop("hidden", true);
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "GET",
+            url: `/customers/${id}`,
+            dataType: "json"
+        })
+            .done(function (response) {
+                result.find("[data-field]").each(function () {
+                    $(this).text(response[this.dataset.field]);
+                });
+                result.prop("hidden", false);
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to retrieve customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
+    });
 });
