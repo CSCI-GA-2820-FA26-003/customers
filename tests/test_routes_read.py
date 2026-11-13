@@ -58,6 +58,7 @@ class TestCustomerRead(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.is_json)
         self.assertEqual(response.get_json(), customer.serialize())
+        self.assertEqual(response.get_json()["email"], customer.email)
 
     def test_read_customer_not_found(self):
         """It should return 404 for a missing customer"""
@@ -114,6 +115,30 @@ class TestCustomerRead(TestCase):
                 self.assertEqual(response.status_code, status.HTTP_200_OK)
                 self.assertEqual(response.get_json(), [matching.serialize()])
 
+    def test_query_customers_by_email(self):
+        """It should return only the customer with the given email."""
+        matching = CustomerFactory(email="emily.chen@example.com")
+        matching.create()
+        CustomerFactory().create()
+
+        response = self.client.get(
+            "/customers", query_string={"email": "emily.chen@example.com"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [matching.serialize()])
+
+    def test_query_customers_by_email_no_match(self):
+        """It should return an empty list when no customer has the email."""
+        CustomerFactory().create()
+
+        response = self.client.get(
+            "/customers", query_string={"email": "nobody@example.com"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json(), [])
+
     def test_query_customers_by_combined_filters(self):
         """It should match every supplied filter."""
         matching = CustomerFactory(city="Albany", state="NY", membership_level="gold")
@@ -155,6 +180,7 @@ class TestCustomerRead(TestCase):
             ("state", "XX"),
             ("membership_level", "platinum"),
             ("postal_code", "123"),
+            ("email", "not-an-email"),
         ):
             with self.subTest(field=field):
                 response = self.client.get("/customers", query_string={field: value})
@@ -171,6 +197,7 @@ class TestCustomerRead(TestCase):
             "postal_code",
             "last_name",
             "first_name",
+            "email",
         ):
             for value in ("", "   "):
                 with self.subTest(field=field, value=value):
