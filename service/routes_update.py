@@ -16,6 +16,15 @@ def update_customer(customer_id):
         abort(status.HTTP_404_NOT_FOUND)
 
     data = request.get_json()
+    # make sure the email is not used by other user
+    email = data.get("email") if isinstance(data, dict) else None
+    if isinstance(email, str):
+        existing = Customer.find_by_email(email)
+        if existing and existing.id != customer.id:
+            abort(
+                status.HTTP_409_CONFLICT,
+                f"Customer with email '{email}' already exists.",
+            )
     customer.deserialize(data)
     customer.update()
 
