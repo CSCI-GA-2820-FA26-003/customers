@@ -14,6 +14,7 @@
 
 # import re
 import requests
+
 # import logging
 from typing import Any
 from behave import given, when, then  # pylint: disable=no-name-in-module
@@ -21,16 +22,25 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
-
 ID_PREFIX = "customer_"
 
 
-@given('the customer service is running')
+@given("the customer service is running")
 def run_customer_service(context: Any):
-    """Check if the customer service is running"""
+    """Check if the customer service is running and delete all customers"""
     context.driver.get(context.base_url)
-    context.resp = requests.get(context.base_url + '/')
+    context.resp = requests.get(context.base_url + "/", timeout=context.wait_seconds)
     assert context.resp.status_code == 200
+
+    # Start every scenario with an empty database
+    resp = requests.get(context.base_url + "/customers", timeout=context.wait_seconds)
+    assert resp.status_code == 200, "Could not list customers"
+    for customer in resp.json():
+        resp = requests.delete(
+            f"{context.base_url}/customers/{customer['id']}",
+            timeout=context.wait_seconds,
+        )
+        assert resp.status_code == 204, f"Could not delete customer {customer['id']}"
 
 
 @when('I visit the "Customer Admin Portal" page')
@@ -68,9 +78,9 @@ def press_button(context: Any, button: str):
 @then('I should see a successful "{action}" message for customer "{name}"')
 def verify_success_message_for(context: Any, name: str, action: str):
     """Verify the success message in the browser alert"""
-    alert = WebDriverWait(
-        context.driver, context.wait_seconds
-    ).until(expected_conditions.alert_is_present())
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
 
     assert alert.text == f"Customer {name} was successfully {action.lower()}!"
     alert.accept()
