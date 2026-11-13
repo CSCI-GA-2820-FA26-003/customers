@@ -1,7 +1,7 @@
 """Customer Service: create route"""
 
 from flask import current_app as app
-from flask import jsonify, request
+from flask import abort, jsonify, request
 from service.models import Customer
 from service.common import status
 
@@ -16,6 +16,11 @@ def create_customers():
     customer.deserialize(data)
     # Every new customer starts at bronze; the level can only be changed by upgrade/downgrade endpoints
     customer.membership_level = "bronze"
+    if Customer.find_by_email(customer.email):
+        abort(
+            status.HTTP_409_CONFLICT,
+            f"Customer with email '{customer.email}' already exists.",
+        )
     customer.create()
     app.logger.info("Customer with new id [%s] created.", customer.id)
     location_url = f"{request.base_url}/{customer.id}"

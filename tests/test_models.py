@@ -544,6 +544,26 @@ class TestCustomerModel(TestCase):
 
         self.assertIsNone(found)
 
+    def test_find_by_email(self):
+        """It should return the customer with the given email"""
+        customer = CustomerFactory()
+        customer.create()
+        CustomerFactory().create()
+
+        found = Customer.find_by_email(customer.email)
+
+        self.assertIsInstance(found, Customer)
+        self.assertEqual(found.id, customer.id)
+        self.assertEqual(found.email, customer.email)
+
+    def test_find_by_email_not_existing(self):
+        """It should return None when no customer has the given email"""
+        CustomerFactory().create()
+
+        found = Customer.find_by_email("nobody@example.com")
+
+        self.assertIsNone(found)
+
     def test_find_by_last_name(self):
         """It should return a customer model"""
         customer1 = CustomerFactory()

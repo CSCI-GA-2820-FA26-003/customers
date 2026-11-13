@@ -213,6 +213,16 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         return cls.query.session.get(cls, by_id)
 
     @classmethod
+    def find_by_email(cls, email):
+        """Returns the Customer with the given email, or None if there is none
+
+        Args:
+            email (string): the email of the Customer you want to match
+        """
+        logger.info("Processing email query for %s ...", email)
+        return cls.query.filter(cls.email == email).first()
+
+    @classmethod
     def find_by_last_name(cls, last_name):
         """Returns all Customers with the given last name
 
