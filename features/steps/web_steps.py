@@ -40,6 +40,11 @@ def visit_customer_admin_portal(context: Any):
     assert "Customer Admin Portal" in context.driver.title
 
 
+@when('I click the "Search Customer" tab')
+def click_search_customer_tab(context):
+    context.driver.find_element(By.ID, "search-tab").click()
+
+
 @when('I set the "{element_name}" to "{text_string}"')
 def set_text_field(context: Any, element_name: str, text_string: str):
     """Set the value of a text field"""
@@ -127,10 +132,12 @@ def verify_alert_message(context, message):
 
 @then("the form should show the existing customer's details")
 def verify_customer_details(context):
-    """Check each form field against the customer created for this scenario."""
+    """Verify that the Read section displays the retrieved customer's details."""
+    result = context.driver.find_element(By.ID, "customer_result")
+    assert result.is_displayed()
+
     for field, expected in context.expected_customer.items():
-        element = context.driver.find_element(By.ID, f"customer_{field}")
-        actual = element.get_property("value")
+        actual = result.find_element(By.CSS_SELECTOR, f'[data-field="{field}"]').text
         assert actual == expected, f"{field}: expected {expected!r}, got {actual!r}"
 
 
