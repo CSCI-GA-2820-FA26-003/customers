@@ -37,6 +37,19 @@ class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
 
 
+class DuplicateEmailError(DataValidationError):
+    """Used when an email already belongs to another customer"""
+
+
+# Name Postgres gives the UNIQUE constraint on customers.email
+
+
+def _is_duplicate_email(error):
+    """Return True if a database error is a violation of the unique email constraint"""
+    diag = getattr(getattr(error, "orig", None), "diag", None)
+    return getattr(diag, "constraint_name", None) == "customers_email_key"
+
+
 class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
     """
     Class that represents a customer
@@ -80,25 +93,40 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         Creates a Customer to the database
         """
         try:
-            logger.info("Creating %s %s", self.first_name, self.last_name)
+            logger.info(
+                "Creating %s %s with e-mail: %s",
+                self.first_name,
+                self.last_name,
+                self.email,
+            )
             self.id = None  # pylint: disable=invalid-name
             db.session.add(self)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             logger.error("Error creating record: %s", self)
+            if _is_duplicate_email(e):
+                raise DuplicateEmailError(
+                    f"Customer with email '{self.email}' already exists."
+                ) from e
             raise DataValidationError(e) from e
 
     def update(self):
         """
         Updates a Customer to the database
         """
+        with db.session.no_autoflush:
+            email = self.email
         try:
             logger.info("Saving %s %s", self.first_name, self.last_name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             logger.error("Error updating record: %s", self)
+            if _is_duplicate_email(e):
+                raise DuplicateEmailError(
+                    f"Customer with email '{email}' already exists."
+                ) from e
             raise DataValidationError(e) from e
 
     def delete(self):
@@ -211,16 +239,6 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         """Finds a Customer by it's ID"""
         logger.info("Processing lookup for id %s ...", by_id)
         return cls.query.session.get(cls, by_id)
-
-    @classmethod
-    def find_by_email(cls, email):
-        """Returns the Customer with the given email, or None if there is none
-
-        Args:
-            email (string): the email of the Customer you want to match
-        """
-        logger.info("Processing email query for %s ...", email)
-        return cls.query.filter(cls.email == email).first()
 
     @classmethod
     def find_by_last_name(cls, last_name):
