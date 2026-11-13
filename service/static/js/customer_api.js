@@ -10,6 +10,8 @@ $(function () {
         $("#customer_city").val(customer.city);
         $("#customer_state").val(customer.state);
         $("#customer_postal_code").val(customer.postal_code);
+        $("#customer_id").val(customer.id);
+        $("#customer_membership_level").val(customer.membership_level);
     }
 
     function clear_form_data() {
@@ -19,7 +21,27 @@ $(function () {
         $("#customer_city").val("");
         $("#customer_state").val("");
         $("#customer_postal_code").val("");
+        $("#customer_id").val("");
+        $("#customer_membership_level").val("");
     }
+
+    $("#customer_retrieve-btn").click(function () {
+        const id = $("#customer_id").val().trim();
+        if (!/^[1-9]\d*$/.test(id)) {
+            alert("Enter a valid Customer ID");
+            return;
+        }
+
+        $.getJSON(`/customers/${id}`)
+            .done(function (customer) {
+                update_form_data(customer);
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || "Unable to retrieve customer";
+                alert(message);
+            });
+    });
 
     function show_error(response) {
         const message = response.responseJSON?.message || response.responseText || "Server error!";
