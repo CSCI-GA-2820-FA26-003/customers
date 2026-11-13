@@ -83,6 +83,7 @@ class TestCustomerModel(TestCase):
         data = Customer.find(customer.id)
         self.assertEqual(data.first_name, customer.first_name)
         self.assertEqual(data.last_name, customer.last_name)
+        self.assertEqual(data.email, customer.email)
         self.assertEqual(data.street, customer.street)
         self.assertEqual(data.city, customer.city)
         self.assertEqual(data.state, customer.state)
@@ -148,6 +149,25 @@ class TestCustomerModel(TestCase):
 
                 self.assertRaises(DataValidationError, customer.create)
 
+    def test_create_invalid_email(self):
+        """It should not create a customer with no email or a blank email"""
+        for value in BLANK_VALUES:
+            with self.subTest(value=value):
+                customer = CustomerFactory()
+                customer.email = value
+
+                self.assertRaises(DataValidationError, customer.create)
+
+    def test_create_duplicate_email(self):
+        """It should not create a customer with an email that is already used"""
+        customer = CustomerFactory()
+        customer.create()
+        duplicate = CustomerFactory()
+        duplicate.email = customer.email
+
+        self.assertRaises(DataValidationError, duplicate.create)
+        self.assertEqual(len(Customer.all()), 1)
+
     def test_create_invalid_street(self):
         """It should not create a customer with no street or a blank street"""
         for value in BLANK_VALUES:
@@ -207,6 +227,24 @@ class TestCustomerModel(TestCase):
 
         self.assertRaises(DataValidationError, customer.update)
 
+    def test_update_no_email(self):
+        """It should not update a customer's email to none"""
+        customer = CustomerFactory()
+        customer.create()
+        customer.email = None
+
+        self.assertRaises(DataValidationError, customer.update)
+
+    def test_update_duplicate_email(self):
+        """It should not update a customer's email to one that is already used"""
+        customer1 = CustomerFactory()
+        customer1.create()
+        customer2 = CustomerFactory()
+        customer2.create()
+        customer2.email = customer1.email
+
+        self.assertRaises(DataValidationError, customer2.update)
+
     def test_update_no_street(self):
         """It should not update a customer's street to none"""
         customer = CustomerFactory()
@@ -263,6 +301,7 @@ class TestCustomerModel(TestCase):
         self.assertEqual(data["id"], customer.id)
         self.assertEqual(data["first_name"], customer.first_name)
         self.assertEqual(data["last_name"], customer.last_name)
+        self.assertEqual(data["email"], customer.email)
         self.assertEqual(data["street"], customer.street)
         self.assertEqual(data["city"], customer.city)
         self.assertEqual(data["state"], customer.state)
@@ -279,6 +318,7 @@ class TestCustomerModel(TestCase):
 
         self.assertEqual(customer.first_name, data["first_name"])
         self.assertEqual(customer.last_name, data["last_name"])
+        self.assertEqual(customer.email, data["email"])
         self.assertEqual(customer.street, data["street"])
         self.assertEqual(customer.city, data["city"])
         self.assertEqual(customer.state, data["state"])
@@ -309,6 +349,18 @@ class TestCustomerModel(TestCase):
             data,
         )
 
+    def test_deserialize_missing_email(self):
+        """It should not deserialize a customer without an email"""
+        data = CustomerFactory().serialize()
+        del data["email"]
+
+        self.assertRaisesRegex(
+            DataValidationError,
+            "Invalid Customer: missing email",
+            Customer().deserialize,
+            data,
+        )
+
     def test_deserialize_invalid_data_type(self):
         """It should raise a data validation error"""
         data = []
@@ -326,6 +378,7 @@ class TestCustomerModel(TestCase):
         for field in (
             "first_name",
             "last_name",
+            "email",
             "street",
             "city",
             "state",
@@ -357,6 +410,47 @@ class TestCustomerModel(TestCase):
                     Customer().deserialize,
                     data,
                 )
+
+    def test_deserialize_invalid_email(self):
+        """It should not deserialize an invalid email"""
+        for value in [
+            "plainaddress",
+            "@example.com",
+            "user@",
+            "user@example",
+            "user@@example.com",
+            "user@exa mple.com",
+            "user name@example.com",
+            "user@example..com",
+            "user@.example.com",
+            "user@example.com.",
+            "user@example.com\n",
+        ]:
+            with self.subTest(value=value):
+                data = CustomerFactory().serialize()
+                data["email"] = value
+
+                self.assertRaisesRegex(
+                    DataValidationError,
+                    "invalid email",
+                    Customer().deserialize,
+                    data,
+                )
+
+    def test_deserialize_valid_email(self):
+        """It should deserialize valid emails"""
+        for value in [
+            "user@example.com",
+            "first.last+tag@mail.example.co.uk",
+            "user_name-1@sub-domain.example.org",
+        ]:
+            with self.subTest(value=value):
+                data = CustomerFactory().serialize()
+                data["email"] = value
+
+                customer = Customer().deserialize(data)
+
+                self.assertEqual(customer.email, value)
 
     def test_deserialize_lowercase_state(self):
         """It should store the state code uppercase"""
@@ -433,6 +527,7 @@ class TestCustomerModel(TestCase):
         self.assertIsInstance(found, Customer)
         self.assertEqual(found.first_name, customer.first_name)
         self.assertEqual(found.last_name, customer.last_name)
+        self.assertEqual(found.email, customer.email)
         self.assertEqual(found.street, customer.street)
         self.assertEqual(found.city, customer.city)
         self.assertEqual(found.state, customer.state)
