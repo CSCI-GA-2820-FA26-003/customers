@@ -103,3 +103,36 @@ def check_text_in_table(context: Any, text: str, element_name: str):
     WebDriverWait(context.driver, context.wait_seconds).until(
         lambda d: text in element.text
     )
+
+
+@when('I create a customer "{first_name}" "{last_name}" in "{city}", ' '"{state}"')
+def create_customer(context: Any, **fields: str):
+    """Create a customer through the Create form"""
+    values = {
+        "first_name": fields["first_name"],
+        "last_name": fields["last_name"],
+        "city": fields["city"],
+        "street": "1 Main Street",
+        "postal_code": "10001",
+    }
+    for key, value in values.items():
+        element = context.driver.find_element(By.ID, ID_PREFIX + key)
+        element.clear()
+        element.send_keys(value)
+    state = Select(context.driver.find_element(By.ID, ID_PREFIX + "state"))
+    state.select_by_visible_text(fields["state"])
+    context.driver.find_element(By.ID, "customer_create-btn").click()
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    alert.accept()
+
+
+@then('I should not see "{text}" in the "{element_name}" table')
+def check_text_not_in_table(context: Any, text: str, element_name: str):
+    """Check that text does not appear in a results table"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = context.driver.find_element(By.ID, element_id)
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        lambda d: text not in element.text
+    )

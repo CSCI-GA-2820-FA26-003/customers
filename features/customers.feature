@@ -37,3 +37,35 @@ Scenario: List all Customers
     When I press the "Clear" button
     And I press the "Search" button
     Then I should see "Emily" in the "Search Results" table
+
+Scenario: Query customers by last name
+    When I visit the "Customer Admin Portal" page
+    And I create a customer "Alice" "Harbor" in "New York", "NY"
+    And I create a customer "Bob" "Quartz" in "Albany", "NY"
+    And I press the "Clear" button
+    And I set the "Last Name" to "Harbor"
+    And I press the "Search" button
+    Then I should see "Alice" in the "Search Results" table
+    And I should not see "Bob" in the "Search Results" table
+
+Scenario: Query customers by multiple fields returns the intersection
+    When I visit the "Customer Admin Portal" page
+    And I create a customer "Alice" "Cedar" in "New York", "NY"
+    And I create a customer "Bob" "Cedar" in "Oakland", "CA"
+    And I press the "Clear" button
+    And I set the "Last Name" to "Cedar"
+    And I select "NY" in the "State" dropdown
+    And I select "Bronze" in the "Membership Level" dropdown
+    And I press the "Search" button
+    Then I should see "Alice" in the "Search Results" table
+    And I should not see "Bob" in the "Search Results" table
+
+Scenario: Query customers with no matching results
+    When I visit the "Customer Admin Portal" page
+    And I create a customer "Alice" "Zephyr" in "New York", "NY"
+    And I press the "Clear" button
+    And I press the "Search" button
+    Then I should see "Alice" in the "Search Results" table
+    When I set the "Last Name" to "Nomatch"
+    And I press the "Search" button
+    Then I should not see "Alice" in the "Search Results" table
