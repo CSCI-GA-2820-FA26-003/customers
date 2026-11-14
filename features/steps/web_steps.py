@@ -14,6 +14,7 @@
 
 # import re
 import requests
+
 # import logging
 from typing import Any
 from behave import given, when, then  # pylint: disable=no-name-in-module
@@ -21,15 +22,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
-
 ID_PREFIX = "customer_"
 
 
-@given('the customer service is running')
+@given("the customer service is running")
 def run_customer_service(context: Any):
     """Check if the customer service is running"""
     context.driver.get(context.base_url)
-    context.resp = requests.get(context.base_url + '/')
+    context.resp = requests.get(context.base_url + "/")
     assert context.resp.status_code == 200
 
 
@@ -68,9 +68,9 @@ def press_button(context: Any, button: str):
 @then('I should see a successful "{action}" message for customer "{name}"')
 def verify_success_message_for(context: Any, name: str, action: str):
     """Verify the success message in the browser alert"""
-    alert = WebDriverWait(
-        context.driver, context.wait_seconds
-    ).until(expected_conditions.alert_is_present())
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
 
     assert alert.text == f"Customer {name} was successfully {action.lower()}!"
     alert.accept()
@@ -91,3 +91,48 @@ def check_dropdown_unset(context: Any, element_name: str):
     select_element = Select(context.driver.find_element(By.ID, element_id))
     selected_option = select_element.first_selected_option
     assert selected_option.text == ""
+
+
+@then('I should see "{text}" in the "{element_name}" table')
+def check_text_in_table(context: Any, text: str, element_name: str):
+    """Check that text appears in a results table"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, element_id))
+    )
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        lambda d: text in element.text
+    )
+
+
+@when('I create a customer "{first_name}" "{last_name}" in "{city}", ' '"{state}"')
+def create_customer(context: Any, **fields: str):
+    """Create a customer through the Create form"""
+    values = {
+        "first_name": fields["first_name"],
+        "last_name": fields["last_name"],
+        "city": fields["city"],
+        "street": "1 Main Street",
+        "postal_code": "10001",
+    }
+    for key, value in values.items():
+        element = context.driver.find_element(By.ID, ID_PREFIX + key)
+        element.clear()
+        element.send_keys(value)
+    state = Select(context.driver.find_element(By.ID, ID_PREFIX + "state"))
+    state.select_by_visible_text(fields["state"])
+    context.driver.find_element(By.ID, "customer_create-btn").click()
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    alert.accept()
+
+
+@then('I should not see "{text}" in the "{element_name}" table')
+def check_text_not_in_table(context: Any, text: str, element_name: str):
+    """Check that text does not appear in a results table"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = context.driver.find_element(By.ID, element_id)
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        lambda d: text not in element.text
+    )

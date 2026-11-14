@@ -10,6 +10,7 @@ $(function () {
         $("#customer_city").val(customer.city);
         $("#customer_state").val(customer.state);
         $("#customer_postal_code").val(customer.postal_code);
+        $("#customer_membership_level").val(customer.membership_level);
     }
 
     function clear_form_data() {
@@ -19,6 +20,7 @@ $(function () {
         $("#customer_city").val("");
         $("#customer_state").val("");
         $("#customer_postal_code").val("");
+        $("#customer_membership_level").val("");
     }
 
     function show_error(response) {
@@ -53,6 +55,54 @@ $(function () {
                 alert(`Customer ${response.first_name} ${response.last_name} was successfully created!`);
             })
             .fail(show_error);
+    });
+
+
+    // ****************************************
+    // list all Customers
+    // ****************************************
+
+    $("#customer_search-btn").click(function (){
+        const filters = {};
+        [
+            "first_name", "last_name", "city", 
+            "state", "postal_code", "membership_level"
+        ].forEach(function(field){
+            const value = $("#customer_" + field).val();
+            if (value && value.trim()) {
+                filters[field] = value.trim();
+            }
+        });
+
+        $.ajax({
+            type: "GET",
+            url: "/customers",
+            data: filters
+        })
+        .done(function(response){
+            const tbody = $("#customer_search_results tbody");
+            tbody.empty();
+            response.forEach(function (customer){
+                const row = $("<tr></tr>");
+                [
+                    customer.id,
+                    customer.first_name,
+                    customer.last_name,
+                    customer.street,
+                    customer.city,
+                    customer.state,
+                    customer.postal_code,
+                    customer.membership_level
+                ].forEach(function(value){
+                    row.append($("<td></td>").text(value));
+                });
+                tbody.append(row);
+            });
+        })
+        .fail(function(response){
+            const message = response.responseJSON?.message || "Server error!";
+            alert(`Unable to list customers: ${message}`);
+        });
     });
 
     // ****************************************
