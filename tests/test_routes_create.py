@@ -14,6 +14,7 @@ DATABASE_URI = os.getenv(
 BASE_URL = "/customers"
 
 
+# pylint: disable=too-many-public-methods
 class TestCustomerCreate(TestCase):
     """REST API Server Tests"""
 
@@ -82,6 +83,43 @@ class TestCustomerCreate(TestCase):
         data["membership_level"] = "platinum"
         response = self.client.post(BASE_URL, json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_no_email(self):
+        """It should not create a customer without an email"""
+        data = CustomerFactory().serialize()
+        del data["email"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("missing email", response.get_json()["message"])
+
+    def test_create_customer_blank_email(self):
+        """It should not create a customer with a blank email"""
+        for value in [None, "", "   "]:
+            with self.subTest(value=value):
+                data = CustomerFactory().serialize()
+                data["email"] = value
+                response = self.client.post(BASE_URL, json=data)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_customer_invalid_email(self):
+        """It should not create a customer with an invalid email"""
+        data = CustomerFactory().serialize()
+        data["email"] = "not-an-email"
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("invalid email", response.get_json()["message"])
+        self.assertEqual(Customer.all(), [])
+
+    def test_create_customer_duplicate_email(self):
+        """It should not create a customer with an email that is already used"""
+        existing = CustomerFactory()
+        existing.create()
+        data = CustomerFactory().serialize()
+        data["email"] = existing.email
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn(existing.email, response.get_json()["message"])
+        self.assertEqual(len(Customer.all()), 1)
 
     def test_create_customer_no_street(self):
         """It should not create a customer without a street"""

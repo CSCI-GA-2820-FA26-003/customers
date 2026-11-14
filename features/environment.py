@@ -3,6 +3,7 @@ Environment for Behave Testing
 """
 
 from os import getenv
+import requests
 from selenium import webdriver
 
 WAIT_SECONDS = int(getenv("WAIT_SECONDS", "30"))
@@ -23,11 +24,30 @@ def before_all(context):
     context.driver.implicitly_wait(context.wait_seconds)
     context.driver.set_window_size(1280, 1300)
     context.config.setup_logging()
+    delete_all_customers(context)
+
+
+def after_scenario(context, scenario):  # pylint: disable=unused-argument
+    """Executed after each scenario, whether it passed or failed"""
+    delete_all_customers(context)
 
 
 def after_all(context):
     """Executed once after all tests"""
     context.driver.quit()
+
+
+def delete_all_customers(context):
+    """Deletes every customer in the database behind BASE_URL"""
+    resp = requests.get(f"{context.base_url}/customers", timeout=context.wait_seconds)
+    assert resp.status_code == 200, "Could not list customers"
+    for customer in resp.json():
+        resp = requests.delete(
+            f"{context.base_url}/customers/{customer['id']}",
+            timeout=context.wait_seconds,
+        )
+        assert resp.status_code == 204, f"Could not delete customer {customer['id']}"
+
 
 ######################################################################
 # Utility functions to create web drivers

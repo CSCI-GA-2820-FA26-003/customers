@@ -17,6 +17,8 @@ class CustomerFactory(factory.Factory):
     # id = factory.Sequence(lambda n: n)
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
+    # A sequence guarantees every fake customer gets a unique email
+    email = factory.Sequence(lambda n: f"customer{n}@example.com")
     street = factory.Faker("street_address")
     city = factory.Faker("city")
     state = factory.Faker("state_abbr")

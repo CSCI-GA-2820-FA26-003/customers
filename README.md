@@ -68,11 +68,14 @@ The current database structure is as follows. Only US addresses are supported.
 
 > **Schema change:** the single `address` column was replaced by `street`, `city`, `state` and `postal_code`, and a `membership_level` column was added. Existing data is not migrated: run `flask db-create` to drop and recreate the tables.
 
+> **Email upgrade:** the `email` column is added to existing databases automatically when the service starts, without losing data. See [Email Column Upgrade](#email-column-upgrade).
+
 | Field | Type |  Description |
 |-------|------|-------------|
 | `id` | Integer | Primary key, used as `{customer_id}` in URLs. |
 | `first_name` | String, up to 63 characters | Customer first name. Cannot be null, empty, or whitespace-only. |
 | `last_name` | String, up to 63 characters | Customer last name. Cannot be null, empty, or whitespace-only. |
+| `email` | String, up to 255 characters | Customer email in `local@domain.tld` format, e.g. `devops@example.com`. Required and unique: no two customers can share an email. Cannot be null, empty, or whitespace-only. |
 | `street` | String, up to 255 characters | Street address. Cannot be null, empty, or whitespace-only. |
 | `city` | String, up to 63 characters | City. Cannot be null, empty, or whitespace-only. |
 | `state` | String, 2 characters | US state code, e.g. `NY`. Must be a USPS code (50 states, DC, territories or Freely Associated States); lowercase input is stored uppercase. |
@@ -86,6 +89,7 @@ Example customer representation:
   "id": 1,
   "first_name": "DevOps",
   "last_name": "Team",
+  "email": "devops@example.com",
   "street": "251 Mercer St",
   "city": "New York",
   "state": "NY",
@@ -93,6 +97,17 @@ Example customer representation:
   "membership_level": "bronze"
 }
 ```
+
+### Email Column Upgrade
+
+`db.create_all()` only creates missing tables and never changes an existing one, so a database created before the `email` column was added would keep its old `customers` table and every customer request would fail with `column customers.email does not exist`. To prevent this, the service upgrades the schema itself on every startup, right after `db.create_all()` (`service/common/db_upgrade.py`):
+
+1. **Check:** if `customers.email` already exists, is `NOT NULL`, and has the `customers_email_key` (unique) and `customers_email_not_blank` constraints, the schema is current and nothing is changed. This is the case for new databases and on every startup after the first upgrade.
+2. **Upgrade:** otherwise the service adds the `email` column, backfills existing customers, then sets `NOT NULL` and adds both constraints, using the same names `db.create_all()` gives them on a new database.
+
+Things to know:
+
+* **Existing data is kept.** Each customer that existed before the upgrade gets a unique placeholder email `customer-<id>@example.invalid` (`.invalid` is a reserved domain, so it can never be a real address), and a warning with the number of customers is logged. Replace placeholders with real addresses through `PUT /customers/{customer_id}`; they can be found with `GET /customers` or by searching the database for `@example.invalid`.
 
 ## APIs
 
@@ -129,6 +144,7 @@ curl -i -X POST http://localhost:8080/customers \
   -d '{
     "first_name": "DevOps",
     "last_name": "Team",
+    "email": "devops@example.com",
     "street": "251 Mercer St",
     "city": "New York",
     "state": "NY",
@@ -136,7 +152,7 @@ curl -i -X POST http://localhost:8080/customers \
   }'
 ```
 
-Every new customer is created with the `bronze` membership level. `membership_level` is not needed in the request; if a valid level is given, it is ignored. Use [Update a Customer](#update-a-customer) to change the level.
+`email` is required and must not already belong to another customer. Every new customer is created with the `bronze` membership level. `membership_level` is not needed in the request; if a valid level is given, it is ignored. Use [Update a Customer](#update-a-customer) to change the level.
 
 Example response for a newly assigned ID of `1`:
 
@@ -149,6 +165,7 @@ Location: http://localhost:8080/customers/1
   "id": 1,
   "first_name": "DevOps",
   "last_name": "Team",
+  "email": "devops@example.com",
   "street": "251 Mercer St",
   "city": "New York",
   "state": "NY",
@@ -160,7 +177,8 @@ Location: http://localhost:8080/customers/1
 | Result | Status |
 |--------|--------|
 | Customer created | `201` |
-| Missing required field, malformed JSON, or database constraint violation | `400` |
+| Missing required field, invalid email, malformed JSON, or database constraint violation | `400` |
+| Email already used by another customer | `409` |
 | Missing or unsupported JSON content type | `415` |
 
 ### Read a Customer
@@ -183,6 +201,7 @@ curl -i -X PUT http://localhost:8080/customers/1 \
   -d '{
     "first_name": "Customer",
     "last_name": "Squad",
+    "email": "customer.squad@example.com",
     "street": "44 W Fourth St",
     "city": "New York",
     "state": "NY",
@@ -191,19 +210,20 @@ curl -i -X PUT http://localhost:8080/customers/1 \
   }'
 ```
 
-Provide all address and name fields, including both `first_name` and `last_name`, including any value you want to keep. `membership_level` is optional; if it is omitted, the current level is kept. Partial updates and `PATCH` requests are not implemented.
+Provide all name, email and address fields, including both `first_name` and `last_name`, including any value you want to keep. The email can be changed, but not to one that belongs to another customer; keeping the customer's own email is allowed. `membership_level` is optional; if it is omitted, the current level is kept. Partial updates and `PATCH` requests are not implemented.
 
 Example response body with `200 OK`:
 
 ```json
 {
   "id": 1,
-  "first_name": "DevOps",
-  "last_name": "Team",
-  "street": "251 Mercer St",
+  "first_name": "Customer",
+  "last_name": "Squad",
+  "email": "customer.squad@example.com",
+  "street": "44 W Fourth St",
   "city": "New York",
   "state": "NY",
-  "postal_code": "10012",
+  "postal_code": "10003",
   "membership_level": "gold"
 }
 ```
@@ -212,7 +232,8 @@ Example response body with `200 OK`:
 |--------|--------|
 | Customer updated | `200` |
 | Customer does not exist | `404` |
-| Missing required field, malformed JSON, or database constraint violation | `400` |
+| Missing required field, invalid email, malformed JSON, or database constraint violation | `400` |
+| Email already used by another customer | `409` |
 
 The route checks whether the customer exists before reading the body, so a request for a missing customer returns `404` before body validation.
 
@@ -244,6 +265,7 @@ Example response:
     "id": 1,
     "first_name": "DevOps",
     "last_name": "Team",
+    "email": "devops@example.com",
     "street": "251 Mercer St",
     "city": "New York",
     "state": "NY",
@@ -267,9 +289,10 @@ Registered error handlers return a JSON object with `status`, `error`, and `mess
 
 | Code | Typical cause |
 |------|---------------|
-| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank first name, last name, or address field, an invalid state code, a malformed ZIP code, or an unknown membership level. |
+| `400 Bad Request` | Missing fields, malformed JSON, or a failed database write such as a null or blank first name, last name, email, or address field, a malformed email, an invalid state code, a malformed ZIP code, or an unknown membership level. |
 | `404 Not Found` | Reading or updating a missing customer, or requesting an unknown URL. |
 | `405 Method Not Allowed` | Using a method not registered for a path. |
+| `409 Conflict` | Creating a customer, or changing a customer's email, to an email that already belongs to another customer. |
 | `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |
 | `500 Internal Server Error` | An unexpected server error. |
 

@@ -16,9 +16,11 @@
 """
 Module: error_handlers
 """
+
 from flask import jsonify
 from flask import current_app as app  # Import Flask application
-from service.models import DataValidationError
+from werkzeug.exceptions import Conflict
+from service.models import DataValidationError, DuplicateEmailError
 from . import status
 
 
@@ -29,6 +31,12 @@ from . import status
 def request_validation_error(error):
     """Handles Value Errors from bad data"""
     return bad_request(error)
+
+
+@app.errorhandler(DuplicateEmailError)
+def duplicate_email_error(error):
+    """Handles an email that already belongs to another customer"""
+    return conflict(Conflict(str(error)))
 
 
 @app.errorhandler(status.HTTP_400_BAD_REQUEST)

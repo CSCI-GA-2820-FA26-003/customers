@@ -27,11 +27,27 @@ US_STATE_CODES = frozenset(
 # US ZIP code: 12345 or 12345-6789
 POSTAL_CODE_PATTERN = re.compile(r"[0-9]{5}(-[0-9]{4})?")
 
+# Basic email shape: local@domain.tld with no whitespace and exactly one "@"
+EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s.]+(\.[^@\s.]+)+")
+
 MEMBERSHIP_LEVELS = ("bronze", "silver", "gold")
 
 
 class DataValidationError(Exception):
     """Used for an data validation errors when deserializing"""
+
+
+class DuplicateEmailError(DataValidationError):
+    """Used when an email already belongs to another customer"""
+
+
+# Name Postgres gives the UNIQUE constraint on customers.email
+
+
+def _is_duplicate_email(error):
+    """Return True if a database error is a violation of the unique email constraint"""
+    diag = getattr(getattr(error, "orig", None), "diag", None)
+    return getattr(diag, "constraint_name", None) == "customers_email_key"
 
 
 class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
@@ -47,6 +63,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
     __table_args__ = (
         db.CheckConstraint(r"first_name ~ '\S'", name="customers_first_name_not_blank"),
         db.CheckConstraint(r"last_name ~ '\S'", name="customers_last_name_not_blank"),
+        db.CheckConstraint(r"email ~ '\S'", name="customers_email_not_blank"),
         db.CheckConstraint(r"street ~ '\S'", name="customers_street_not_blank"),
         db.CheckConstraint(r"city ~ '\S'", name="customers_city_not_blank"),
         db.CheckConstraint(r"state ~ '\S'", name="customers_state_not_blank"),
@@ -61,6 +78,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(63), nullable=False)
     last_name = db.Column(db.String(63), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
     street = db.Column(db.String(255), nullable=False)
     city = db.Column(db.String(63), nullable=False)
     state = db.Column(db.String(2), nullable=False)
@@ -75,25 +93,40 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         Creates a Customer to the database
         """
         try:
-            logger.info("Creating %s %s", self.first_name, self.last_name)
+            logger.info(
+                "Creating %s %s with e-mail: %s",
+                self.first_name,
+                self.last_name,
+                self.email,
+            )
             self.id = None  # pylint: disable=invalid-name
             db.session.add(self)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             logger.error("Error creating record: %s", self)
+            if _is_duplicate_email(e):
+                raise DuplicateEmailError(
+                    f"Customer with email '{self.email}' already exists."
+                ) from e
             raise DataValidationError(e) from e
 
     def update(self):
         """
         Updates a Customer to the database
         """
+        with db.session.no_autoflush:
+            email = self.email
         try:
             logger.info("Saving %s %s", self.first_name, self.last_name)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             logger.error("Error updating record: %s", self)
+            if _is_duplicate_email(e):
+                raise DuplicateEmailError(
+                    f"Customer with email '{email}' already exists."
+                ) from e
             raise DataValidationError(e) from e
 
     def delete(self):
@@ -113,6 +146,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
             "id": self.id,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "email": self.email,
             "street": self.street,
             "city": self.city,
             "state": self.state,
@@ -130,6 +164,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         try:
             first_name = data["first_name"]
             last_name = data["last_name"]
+            email = data["email"]
             street = data["street"]
             city = data["city"]
             state = data["state"]
@@ -154,6 +189,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
         for field, value in (
             ("first_name", first_name),
             ("last_name", last_name),
+            ("email", email),
             ("street", street),
             ("city", city),
             ("state", state),
@@ -164,6 +200,8 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
                 raise DataValidationError(
                     f"Invalid Customer: {field} must be a non-blank string"
                 )
+        if not EMAIL_PATTERN.fullmatch(email):
+            raise DataValidationError(f"Invalid Customer: invalid email {email}")
         state = state.upper()
         if state not in US_STATE_CODES:
             raise DataValidationError(f"Invalid Customer: invalid state code {state}")
@@ -178,6 +216,7 @@ class Customer(db.Model):  # pylint: disable=too-many-instance-attributes
 
         self.first_name = first_name
         self.last_name = last_name
+        self.email = email
         self.street = street
         self.city = city
         self.state = state

@@ -100,11 +100,67 @@ class TestCustomerUpdate(TestCase):
             "city": None,
             "state": None,
             "postal_code": None,
+            "email": None,
         }
 
         resp = self.client.put(f"/customers/{customer_id}", json=invalid_data)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", resp.json)
+
+    def test_update_customer_email(self):
+        """It should update a customer's email"""
+        customer = CustomerFactory()
+        customer.create()
+        updated_data = customer.serialize()
+        updated_data["email"] = "new.email@example.com"
+
+        resp = self.client.put(f"/customers/{customer.id}", json=updated_data)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.get_json()["email"], "new.email@example.com")
+        self.assertEqual(Customer.find(customer.id).email, "new.email@example.com")
+
+    def test_update_customer_no_email(self):
+        """It should return 400 Bad Request when the email is missing"""
+        customer = CustomerFactory()
+        customer.create()
+        updated_data = customer.serialize()
+        del updated_data["email"]
+
+        resp = self.client.put(f"/customers/{customer.id}", json=updated_data)
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("missing email", resp.get_json()["message"])
+
+    def test_update_customer_invalid_email(self):
+        """It should return 400 Bad Request and keep the email when it is invalid"""
+        customer = CustomerFactory()
+        customer.create()
+        original_email = customer.email
+        updated_data = customer.serialize()
+        updated_data["email"] = "not-an-email"
+
+        resp = self.client.put(f"/customers/{customer.id}", json=updated_data)
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("invalid email", resp.get_json()["message"])
+        self.assertEqual(Customer.find(customer.id).email, original_email)
+
+    def test_update_customer_duplicate_email(self):
+        """It should return 409 Conflict when the email belongs to another customer"""
+        other = CustomerFactory()
+        other.create()
+        customer = CustomerFactory()
+        customer.create()
+        original_email = customer.email
+        updated_data = customer.serialize()
+        updated_data["email"] = other.email
+
+        resp = self.client.put(f"/customers/{customer.id}", json=updated_data)
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn(other.email, resp.get_json()["message"])
+        self.assertEqual(Customer.find(customer.id).email, original_email)
 
     # UPGRADE TEST CASES
 
