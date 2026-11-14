@@ -27,9 +27,9 @@ ID_PREFIX = "customer_"
 
 @given("the customer service is running")
 def run_customer_service(context: Any):
-    """Check if the customer service is running"""
+    """Check that the customer service is running"""
     context.driver.get(context.base_url)
-    context.resp = requests.get(context.base_url + "/")
+    context.resp = requests.get(context.base_url + "/", timeout=context.wait_seconds)
     assert context.resp.status_code == 200
 
 
@@ -45,14 +45,7 @@ def load_customers(context: Any):
         )
         assert response.status_code == 204
     for row in context.table:
-        payload = {
-            "first_name": row["first_name"],
-            "last_name": row["last_name"],
-            "street": row["street"],
-            "city": row["city"],
-            "state": row["state"],
-            "postal_code": row["postal_code"],
-        }
+        payload = {heading: row[heading] for heading in row.headings}
         response = requests.post(
             rest_endpoint, json=payload, timeout=context.wait_seconds
         )
@@ -112,6 +105,17 @@ def verify_message(context: Any, message: str):
     alert.accept()
 
 
+@then('I should see an error message containing "{message}"')
+def verify_error_message(context: Any, message: str):
+    """Verify the error message in the browser alert"""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    text = alert.text
+    alert.accept()
+    assert message in text, f'Expected "{message}" in alert, got "{text}"'
+
+
 @then('the "{element_name}" field should be empty')
 def check_field_empty(context: Any, element_name: str):
     """Check that a field is empty"""
@@ -148,6 +152,7 @@ def create_customer(context: Any, **fields: str):
         "first_name": fields["first_name"],
         "last_name": fields["last_name"],
         "city": fields["city"],
+        "email": f"{fields['first_name']}.{fields['last_name']}@example.com".lower(),
         "street": "1 Main Street",
         "postal_code": "10001",
     }
