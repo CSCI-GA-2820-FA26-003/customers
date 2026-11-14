@@ -4,6 +4,7 @@ $(function () {
     // ****************************************
 
     function update_form_data(customer) {
+        $("#customer_id").val(customer.id);
         $("#customer_first_name").val(customer.first_name);
         $("#customer_last_name").val(customer.last_name);
         $("#customer_street").val(customer.street);
@@ -14,6 +15,7 @@ $(function () {
     }
 
     function clear_form_data() {
+        $("#customer_id").val("");
         $("#customer_first_name").val("");
         $("#customer_last_name").val("");
         $("#customer_street").val("");
@@ -55,6 +57,38 @@ $(function () {
                 alert(`Customer ${response.first_name} ${response.last_name} was successfully created!`);
             })
             .fail(show_error);
+    });
+
+    // ****************************************
+    // Update a Customer
+    // ****************************************
+
+    $("#customer_update-btn").click(function (){
+        const customer_id = $("#customer_id").val().trim();
+
+        const data = {
+            first_name: $("#customer_first_name").val(),
+            last_name: $("#customer_last_name").val(),
+            street: $("#customer_street").val(),
+            city: $("#customer_city").val(),
+            state: $("#customer_state").val(),
+            postal_code: $("#customer_postal_code").val()
+        };
+
+        $.ajax({
+            type: "PUT",
+            url: `/customers/${customer_id}`,
+            contentType: "application/json",
+            data: JSON.stringify(data)
+        })
+            .done(function (response) {
+                update_form_data(response);
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || "Server error!";
+                alert(`Unable to update customer: ${message}`);
+            });
     });
 
 

@@ -76,6 +76,16 @@ def verify_success_message_for(context: Any, name: str, action: str):
     alert.accept()
 
 
+@then('I should see the message "{message}"')
+def verify_message(context: Any, message: str):
+    """Verify the text of the browser alert"""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    assert alert.text == message, f"Got alert: {alert.text}"
+    alert.accept()
+
+
 @then('the "{element_name}" field should be empty')
 def check_field_empty(context: Any, element_name: str):
     """Check that a field is empty"""

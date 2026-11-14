@@ -13,7 +13,10 @@ def update_customer(customer_id):
     app.logger.info("Request to update customer with id: %s", customer_id)
     customer = Customer.find(customer_id)
     if not customer:
-        abort(status.HTTP_404_NOT_FOUND)
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Customer with id '{customer_id}' was not found.",
+        )
 
     data = request.get_json()
     customer.deserialize(data)

@@ -69,3 +69,21 @@ Scenario: Query customers with no matching results
     When I set the "Last Name" to "Nomatch"
     And I press the "Search" button
     Then I should not see "Alice" in the "Search Results" table
+
+Scenario: Update a customer
+    When I visit the "Customer Admin Portal" page
+    And I create a customer "Alice" "Willow" in "New York", "NY"
+    And I set the "Last Name" to "Birch"
+    And I press the "Update" button
+    Then I should see the message "Success"
+    When I press the "Clear" button
+    And I set the "Last Name" to "Birch"
+    And I press the "Search" button
+    Then I should see "Alice" in the "Search Results" table
+
+Scenario: Update a customer that does not exist
+    When I visit the "Customer Admin Portal" page
+    And I create a customer "Alice" "Cypress" in "New York", "NY"
+    And I set the "ID" to "0"
+    And I press the "Update" button
+    Then I should see the message "Unable to update customer: 404 Not Found: Customer with id '0' was not found."
