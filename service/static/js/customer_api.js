@@ -55,6 +55,42 @@ $(function () {
             .fail(show_error);
     });
 
+
+    // ****************************************
+    // list all Customers
+    // ****************************************
+
+    $("#customer_search-btn").click(function (){
+        $.ajax({
+            type: "GET",
+            url: "/customers"
+        })
+        .done(function(response){
+            const tbody = $("#customer_search_results tbody");
+            tbody.empty();
+            response.forEach(function (customer){
+                const row = $("<tr></tr>");
+                [
+                    customer.id,
+                    customer.first_name,
+                    customer.last_name,
+                    customer.street,
+                    customer.city,
+                    customer.state,
+                    customer.postal_code,
+                    customer.membership_level
+                ].forEach(function(value){
+                    row.append($("<td></td>").text(value));
+                });
+                tbody.append(row);
+            });
+        })
+        .fail(function(response){
+            const message = response.responseJSON?.message || "Server error!";
+            alert(`Unable to list customers: ${message}`);
+        });
+    });
+
     // ****************************************
     // Clear the form
     // ****************************************
