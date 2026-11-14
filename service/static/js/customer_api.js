@@ -6,6 +6,7 @@ $(function () {
     function update_form_data(customer) {
         $("#customer_first_name").val(customer.first_name);
         $("#customer_last_name").val(customer.last_name);
+        $("#customer_email").val(customer.email);
         $("#customer_street").val(customer.street);
         $("#customer_city").val(customer.city);
         $("#customer_state").val(customer.state);
@@ -15,6 +16,7 @@ $(function () {
     function clear_form_data() {
         $("#customer_first_name").val("");
         $("#customer_last_name").val("");
+        $("#customer_email").val("");
         $("#customer_street").val("");
         $("#customer_city").val("");
         $("#customer_state").val("");
@@ -36,6 +38,7 @@ $(function () {
         const data = {
             first_name: $("#customer_first_name").val(),
             last_name: $("#customer_last_name").val(),
+            email: $("#customer_email").val(),
             street: $("#customer_street").val(),
             city: $("#customer_city").val(),
             state: $("#customer_state").val(),
