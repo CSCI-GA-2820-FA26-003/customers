@@ -5,6 +5,9 @@ Feature: The eCommerce customer service back-end
 
 BackGround:
     Given the customer service is running
+        And the following customers
+        | first_name | last_name | street             | city     | state | postal_code |
+        | Emily      | Chen      | 50 West 4th Street | New York | NY    | 10012       |
 
 Scenario: Create a Customer
     When I visit the "Customer Admin Portal" page
@@ -26,15 +29,6 @@ Scenario: Create a Customer
 
 Scenario: List all Customers
     When I visit the "Customer Admin Portal" page
-    And I set the "First Name" to "Emily"
-    And I set the "Last Name" to "Chen"
-    And I select "NY" in the "State" dropdown
-    And I set the "City" to "New York"
-    And I set the "Street" to "50 West 4th Street"
-    And I set the "Postal Code" to "10012"
-    And I press the "Create" button
-    Then I should see a successful "created" message for customer "Emily Chen"
-    When I press the "Clear" button
     And I press the "Search" button
     Then I should see "Emily" in the "Search Results" table
 

@@ -33,6 +33,32 @@ def run_customer_service(context: Any):
     assert context.resp.status_code == 200
 
 
+@given("the following customers")
+def load_customers(context: Any):
+    """Delete all customers, then create the ones listed in the table"""
+    rest_endpoint = f"{context.base_url}/customers"
+    response = requests.get(rest_endpoint, timeout=context.wait_seconds)
+    assert response.status_code == 200
+    for customer in response.json():
+        response = requests.delete(
+            f"{rest_endpoint}/{customer['id']}", timeout=context.wait_seconds
+        )
+        assert response.status_code == 204
+    for row in context.table:
+        payload = {
+            "first_name": row["first_name"],
+            "last_name": row["last_name"],
+            "street": row["street"],
+            "city": row["city"],
+            "state": row["state"],
+            "postal_code": row["postal_code"],
+        }
+        response = requests.post(
+            rest_endpoint, json=payload, timeout=context.wait_seconds
+        )
+        assert response.status_code == 201
+
+
 @when('I visit the "Customer Admin Portal" page')
 def visit_customer_admin_portal(context: Any):
     """Visit the Customer Admin Portal page"""
