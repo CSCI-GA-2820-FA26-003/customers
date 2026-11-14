@@ -5,6 +5,7 @@ from flask import jsonify, abort, request
 from service.models import (
     Customer,
     DataValidationError,
+    EMAIL_PATTERN,
     MEMBERSHIP_LEVELS,
     POSTAL_CODE_PATTERN,
     US_STATE_CODES,
@@ -53,6 +54,7 @@ def customer_query_filters():
         "postal_code",
         "last_name",
         "first_name",
+        "email",
     ):
         if field in request.args:
             value = request.args[field]
@@ -72,6 +74,7 @@ def customer_query_filters():
         "state": US_STATE_CODES.__contains__,
         "membership_level": MEMBERSHIP_LEVELS.__contains__,
         "postal_code": POSTAL_CODE_PATTERN.fullmatch,
+        "email": EMAIL_PATTERN.fullmatch,
     }
 
     for field, validate in validators.items():
