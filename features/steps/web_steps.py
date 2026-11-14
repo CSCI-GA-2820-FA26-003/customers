@@ -27,20 +27,23 @@ ID_PREFIX = "customer_"
 
 @given("the customer service is running")
 def run_customer_service(context: Any):
-    """Check if the customer service is running and delete all customers"""
+    """Check that the customer service is running"""
     context.driver.get(context.base_url)
     context.resp = requests.get(context.base_url + "/", timeout=context.wait_seconds)
     assert context.resp.status_code == 200
 
-    # Start every scenario with an empty database
-    resp = requests.get(context.base_url + "/customers", timeout=context.wait_seconds)
-    assert resp.status_code == 200, "Could not list customers"
-    for customer in resp.json():
-        resp = requests.delete(
-            f"{context.base_url}/customers/{customer['id']}",
-            timeout=context.wait_seconds,
+
+@given("the following customers")
+def load_customers(context: Any):
+    """Create the customers in the table through the REST API"""
+    for row in context.table:
+        customer = {heading: row[heading] for heading in row.headings}
+        resp = requests.post(
+            f"{context.base_url}/customers", json=customer, timeout=context.wait_seconds
         )
-        assert resp.status_code == 204, f"Could not delete customer {customer['id']}"
+        assert (
+            resp.status_code == 201
+        ), f"Could not create {customer['email']}: {resp.text}"
 
 
 @when('I visit the "Customer Admin Portal" page')
@@ -84,6 +87,17 @@ def verify_success_message_for(context: Any, name: str, action: str):
 
     assert alert.text == f"Customer {name} was successfully {action.lower()}!"
     alert.accept()
+
+
+@then('I should see an error message containing "{message}"')
+def verify_error_message(context: Any, message: str):
+    """Verify the error message in the browser alert"""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    text = alert.text
+    alert.accept()
+    assert message in text, f'Expected "{message}" in alert, got "{text}"'
 
 
 @then('the "{element_name}" field should be empty')
