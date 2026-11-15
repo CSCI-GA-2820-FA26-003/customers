@@ -7,6 +7,9 @@
     rel="stylesheet"
     href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
   <title>Customer Admin Portal</title>
+  <style>
+    #customer_search_results tbody tr { cursor: pointer; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -22,9 +25,10 @@
           <a id="search-tab" href="#search-customer" data-toggle="tab"
              role="tab" aria-controls="search-customer">Search Customer</a>
         </li>
-        <li role="presentation">
+        <li class="disabled" role="presentation">
           <a id="manage-tab" href="#manage-customer" data-toggle="tab"
-             role="tab" aria-controls="manage-customer">Manage Customer</a>
+             role="tab" aria-controls="manage-customer" aria-disabled="true"
+             title="Search for customers first">Manage Customer</a>
         </li>
       </ul>
     </nav>
@@ -154,7 +158,8 @@
           </dl>
         </div>
         <h3>Search Results</h3>
-        <table id="customer_search_results" class="table table-striped">
+        <p class="help-block">Click a customer row to open it in Manage Customer.</p>
+        <table id="customer_search_results" class="table table-striped table-hover">
           <thead>
             <tr>
               <th>ID</th>
@@ -173,6 +178,82 @@
 
       <section id="manage-customer" class="tab-pane" role="tabpanel" aria-labelledby="manage-tab">
         <h2 id="customer_manage-heading">Manage Customer</h2>
+        <form id="customer_manage-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_id">Customer ID</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_id" name="id" class="form-control" type="text" readonly>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_first_name">First Name</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_first_name" name="first_name" class="form-control" type="text" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_last_name">Last Name</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_last_name" name="last_name" class="form-control" type="text" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_email">Email</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_email" name="email" class="form-control" type="email" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_street">Street</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_street" name="street" class="form-control" type="text" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_state">State</label>
+            <div class="col-sm-6">
+              <select id="customer_manage_state" name="state" class="form-control" required></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_city">City</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_city" name="city" class="form-control" type="text" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_postal_code">Postal Code</label>
+            <div class="col-sm-6">
+              <input id="customer_manage_postal_code" name="postal_code" class="form-control" type="text" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_manage_membership_level">Membership Level</label>
+            <div class="col-sm-6">
+              <select id="customer_manage_membership_level" name="membership_level" class="form-control" disabled>
+                <option value=""></option>
+                <option value="bronze">Bronze</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+              </select>
+            </div>
+          </div>
+        </form>
+
+        <h3>Upgrade Membership</h3>
+        <form id="customer_upgrade-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_upgrade_level">Upgrade To</label>
+            <div class="col-sm-6">
+              <select id="customer_upgrade_level" class="form-control" required></select>
+            </div>
+            <div class="col-sm-2">
+              <button id="customer_upgrade-btn" class="btn btn-primary" type="submit" disabled>
+                Upgrade
+              </button>
+            </div>
+          </div>
+        </form>
       </section>
     </div>
   </div>

@@ -94,3 +94,26 @@ Scenario: Retrieve a customer that does not exist
     And I press the "Retrieve" button
     Then I should see an error message containing "not found"
 
+# Upgrade a Customer
+Scenario: Upgrade a customer's membership level
+    When I open "Sophia Davis" from the search results
+    Then the "Manage Membership Level" field should contain "bronze"
+    When I select "Gold" in the "Upgrade Level" dropdown
+    And I press the "Upgrade" button
+    Then I should see a successful "upgraded" message for customer "Sophia Davis"
+    And the "Manage Membership Level" field should contain "gold"
+    And the "Upgrade" button should be disabled
+    
+Scenario: Upgrade a customer that does not exist
+    When I open "Sophia Davis" from the search results
+    And the customer "sophia.davis@example.com" is deleted
+    And I select "Gold" in the "Upgrade Level" dropdown
+    And I press the "Upgrade" button
+    Then I should see an error message containing "not found"
+
+Scenario: Upgrade a customer to a lower level than their current one
+    When I open "Sophia Davis" from the search results
+    And the customer "sophia.davis@example.com" is upgraded to "gold"
+    And I select "Silver" in the "Upgrade Level" dropdown
+    And I press the "Upgrade" button
+    Then I should see an error message containing "Cannot downgrade membership via upgrade action"

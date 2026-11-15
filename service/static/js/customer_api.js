@@ -90,6 +90,7 @@ $(function () {
         .done(function(response){
             const tbody = $("#customer_search_results tbody");
             tbody.empty();
+            set_manage_tab_enabled(response.length > 0);
             if (response.length === 0) {
                 alert("Customer does not exist with the given search criteria.");
                 return;
@@ -108,6 +109,7 @@ $(function () {
                 ].forEach(function(value){
                     row.append($("<td></td>").text(value));
                 });
+                row.data("customer", customer);
                 tbody.append(row);
             });
         })
@@ -118,6 +120,104 @@ $(function () {
         .always(function () {
             button.prop("disabled", false);
         });
+    });
+
+    // ****************************************
+    // Open a search result in Manage Customer
+    // ****************************************
+
+    function update_manage_form(customer) {
+        [
+            "id", "first_name", "last_name", "email", "street",
+            "city", "state", "postal_code", "membership_level"
+        ].forEach(function (field) {
+            $("#customer_manage_" + field).val(customer[field]);
+        });
+        update_upgrade_options(customer.membership_level);
+    }
+
+    // ****************************************
+    // Upgrade a Customer's membership
+    // ****************************************
+
+    const MEMBERSHIP_LEVELS = ["bronze", "silver", "gold"];
+
+    // Only offer levels above the current one; the API rejects downgrades
+    function update_upgrade_options(current_level) {
+        const select = $("#customer_upgrade_level");
+        select.empty();
+        const higher = MEMBERSHIP_LEVELS.slice(MEMBERSHIP_LEVELS.indexOf(current_level) + 1);
+        if (higher.length === 0) {
+            select.append(new Option("Already at highest level", ""));
+        } else {
+            higher.forEach(function (level) {
+                const label = level.charAt(0).toUpperCase() + level.slice(1);
+                select.append(new Option(label, level));
+            });
+        }
+        select.prop("disabled", higher.length === 0);
+        $("#customer_upgrade-btn").prop("disabled", higher.length === 0);
+    }
+
+    $("#customer_upgrade-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_manage_id").val();
+        const target_level = $("#customer_upgrade_level").val();
+        const button = $("#customer_upgrade-btn");
+        if (!id || !target_level) {
+            return;
+        }
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "PUT",
+            url: `/customers/${id}/upgrade`,
+            contentType: "application/json",
+            data: JSON.stringify({ target_level: target_level })
+        })
+            .done(function (response) {
+                update_manage_form(response);
+                // Keep the search results in sync with the new level
+                $("#customer_search_results tbody tr").each(function () {
+                    const row = $(this);
+                    if (row.data("customer")?.id === response.id) {
+                        row.data("customer", response);
+                        row.children().last().text(response.membership_level);
+                    }
+                });
+                alert(`Customer ${response.first_name} ${response.last_name} was successfully upgraded!`);
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to upgrade customer: ${message}`);
+                button.prop("disabled", false);
+            });
+    });
+
+    // The Manage tab is only usable once a search has returned results
+    function set_manage_tab_enabled(enabled) {
+        const tab = $("#manage-tab");
+        tab.parent().toggleClass("disabled", !enabled);
+        tab.attr("aria-disabled", String(!enabled));
+        tab.attr("title", enabled ? "" : "Search for customers first");
+    }
+
+    // Runs before Bootstrap's delegated tab handler on document
+    $("#manage-tab").on("click", function (event) {
+        if ($(this).parent().hasClass("disabled")) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
+
+    $("#customer_search_results tbody").on("click", "tr", function () {
+        const customer = $(this).data("customer");
+        if (!customer) {
+            return;
+        }
+        update_manage_form(customer);
+        $("#manage-tab").tab("show");
     });
 
     $("#customer_read-form").submit(function (event) {
@@ -185,7 +285,7 @@ $(function () {
         ["WI", "Wisconsin"], ["WY", "Wyoming"]
     ];
 
-    ["#customer_state", "#customer_query_state"].forEach(function (selector) {
+    ["#customer_state", "#customer_query_state", "#customer_manage_state"].forEach(function (selector) {
         const stateSelect = $(selector);
         stateSelect.append(new Option("", ""));
         states.forEach(function (state) {
