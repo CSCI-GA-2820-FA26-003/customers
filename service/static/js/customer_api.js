@@ -11,6 +11,7 @@ $(function () {
         $("#customer_city").val(customer.city);
         $("#customer_state").val(customer.state);
         $("#customer_postal_code").val(customer.postal_code);
+        $("#customer_membership_level").val(customer.membership_level);
     }
 
     function clear_form_data() {
@@ -21,6 +22,7 @@ $(function () {
         $("#customer_city").val("");
         $("#customer_state").val("");
         $("#customer_postal_code").val("");
+        $("#customer_membership_level").val("");
     }
 
     function show_error(response) {
@@ -64,9 +66,21 @@ $(function () {
     // ****************************************
 
     $("#customer_search-btn").click(function (){
+        const filters = {};
+        [
+            "first_name", "last_name", "city", 
+            "state", "postal_code", "membership_level"
+        ].forEach(function(field){
+            const value = $("#customer_" + field).val();
+            if (value && value.trim()) {
+                filters[field] = value.trim();
+            }
+        });
+
         $.ajax({
             type: "GET",
-            url: "/customers"
+            url: "/customers",
+            data: filters
         })
         .done(function(response){
             const tbody = $("#customer_search_results tbody");
