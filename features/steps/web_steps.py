@@ -128,6 +128,7 @@ def create_bronze_customer(context):
     customer = {
         "first_name": "Emily",
         "last_name": "Chen",
+        "email": "emilychen@example.com",
         "street": "50 West 4th Street",
         "city": "New York",
         "state": "NY",
