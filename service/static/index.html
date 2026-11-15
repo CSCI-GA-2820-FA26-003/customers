@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link
     rel="stylesheet"
-    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
   <title>Customer Admin Portal</title>
 </head>
 <body>
@@ -19,12 +19,17 @@
              role="tab" aria-controls="create-customer">Create Customer</a>
         </li>
         <li role="presentation">
-          <a id="search-tab" href="#read-customer" data-toggle="tab"
-             role="tab" aria-controls="read-customer">Search Customer</a>
+          <a id="search-tab" href="#search-customer" data-toggle="tab"
+             role="tab" aria-controls="search-customer">Search Customer</a>
+        </li>
+        <li role="presentation">
+          <a id="manage-tab" href="#manage-customer" data-toggle="tab"
+             role="tab" aria-controls="manage-customer">Manage Customer</a>
         </li>
       </ul>
     </nav>
 
+    <!-- Create Customer -->
     <div class="tab-content">
       <section id="create-customer" class="tab-pane active" role="tabpanel" aria-labelledby="create-tab">
         <h2 id="customer_create-heading">Create New Customer</h2>
@@ -41,18 +46,18 @@
               <input id="customer_last_name" name="last_name" class="form-control" type="text" required>
             </div>
           </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_email">Email</label>
-          <div class="col-sm-6">
-            <input id="customer_email" name="email" class="form-control" type="email" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_email">Email</label>
+            <div class="col-sm-6">
+              <input id="customer_email" name="email" class="form-control" type="email" required>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_street">Street</label>
-          <div class="col-sm-6">
-            <input id="customer_street" name="street" class="form-control" type="text" required>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_street">Street</label>
+            <div class="col-sm-6">
+              <input id="customer_street" name="street" class="form-control" type="text" required>
+            </div>
           </div>
-        </div>
           <div class="form-group">
             <label class="col-sm-2 control-label" for="customer_state">State</label>
             <div class="col-sm-6">
@@ -71,40 +76,66 @@
               <input id="customer_postal_code" name="postal_code" class="form-control" type="text" required>
             </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-2 control-label" for="customer_membership_level">Membership Level</label>
-          <div class="col-sm-6">
-            <select id="customer_membership_level" name="membership_level" class="form-control">
-              <option value=""></option>
-              <option value="bronze">Bronze</option>
-              <option value="silver">Silver</option>
-              <option value="gold">Gold</option>
-            </select>
+          <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-6">
+              <button id="customer_clear-btn" class="btn btn-default" type="button">Clear</button>
+              <button id="customer_create-btn" class="btn btn-primary" type="submit">Create</button>
+            </div>
           </div>
-        </div>
-
-        <div class="form-group">
-          <div class="col-sm-offset-2 col-sm-6">
-            <button id="customer_clear-btn" class="btn btn-default" type="button">Clear</button>
-            <button id="customer_create-btn" class="btn btn-primary" type="submit">Create</button>
-            <button id="customer_search-btn" class="btn btn-default" type="button">Search</button>
-          </div>
-         </div>
         </form>
       </section>
-      <section id="read-customer" class="tab-pane" role="tabpanel" aria-labelledby="search-tab">
-        <h2 id="customer_read-heading">Read Customer</h2>
+
+      <!-- Search Customer -->
+      <section id="search-customer" class="tab-pane" role="tabpanel" aria-labelledby="search-tab">
+        <h2 id="customer_search-heading">Search Customer</h2>
         <form id="customer_read-form" class="form-horizontal">
           <div class="form-group">
             <label class="col-sm-2 control-label" for="customer_id">Customer ID</label>
             <div class="col-sm-6">
               <input id="customer_id" class="form-control" type="text"
-                    inputmode="numeric" pattern="[1-9][0-9]*" required>
+                     inputmode="numeric" pattern="[1-9][0-9]*">
             </div>
             <div class="col-sm-2">
               <button id="customer_retrieve-btn" class="btn btn-primary" type="submit">
                 Retrieve
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <h3>Search by Filters</h3>
+        <form id="customer_query-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_query_city">City</label>
+            <div class="col-sm-6">
+              <input id="customer_query_city" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_query_state">State</label>
+            <div class="col-sm-6">
+              <select id="customer_query_state" class="form-control"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_query_last_name">Last Name</label>
+            <div class="col-sm-6">
+              <input id="customer_query_last_name" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_query_membership_level">Membership Level</label>
+            <div class="col-sm-6">
+              <select id="customer_query_membership_level" class="form-control">
+                <option value=""></option>
+                <option value="bronze">Bronze</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+              </select>
+            </div>
+            <div class="col-sm-2">
+              <button id="customer_search-btn" class="btn btn-primary" type="submit">
+                Search
               </button>
             </div>
           </div>
@@ -114,6 +145,7 @@
           <dl class="dl-horizontal">
             <dt>First Name</dt><dd data-field="first_name"></dd>
             <dt>Last Name</dt><dd data-field="last_name"></dd>
+            <dt>Email</dt><dd data-field="email"></dd>
             <dt>Street</dt><dd data-field="street"></dd>
             <dt>City</dt><dd data-field="city"></dd>
             <dt>State</dt><dd data-field="state"></dd>
@@ -121,9 +153,9 @@
             <dt>Membership Level</dt><dd data-field="membership_level"></dd>
           </dl>
         </div>
-      <h3>Search Results</h3>
-      <table id="customer_search_results" class="table table-striped">
-        <thead>
+        <h3>Search Results</h3>
+        <table id="customer_search_results" class="table table-striped">
+          <thead>
             <tr>
               <th>ID</th>
               <th>First Name</th>
@@ -134,14 +166,19 @@
               <th>Postal</th>
               <th>Membership</th>
             </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-   </div>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section id="manage-customer" class="tab-pane" role="tabpanel" aria-labelledby="manage-tab">
+        <h2 id="customer_manage-heading">Manage Customer</h2>
+      </section>
+    </div>
   </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
   <script src="/static/js/customer_api.js"></script>
 </body>
 </html>

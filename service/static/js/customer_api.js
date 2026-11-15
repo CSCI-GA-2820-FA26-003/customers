@@ -65,13 +65,18 @@ $(function () {
     // list all Customers
     // ****************************************
 
-    $("#customer_search-btn").click(function (){
+    $("#customer_query-form").submit(function (event) {
+        event.preventDefault();
+
+        const button = $("#customer_search-btn");
+        button.prop("disabled", true);
+
         const filters = {};
         [
             "first_name", "last_name", "city", 
             "state", "postal_code", "membership_level"
         ].forEach(function(field){
-            const value = $("#customer_" + field).val();
+            const value = $("#customer_query_" + field).val();
             if (value && value.trim()) {
                 filters[field] = value.trim();
             }
@@ -85,6 +90,10 @@ $(function () {
         .done(function(response){
             const tbody = $("#customer_search_results tbody");
             tbody.empty();
+            if (response.length === 0) {
+                alert("Customer does not exist with the given search criteria.");
+                return;
+            }
             response.forEach(function (customer){
                 const row = $("<tr></tr>");
                 [
@@ -105,7 +114,40 @@ $(function () {
         .fail(function(response){
             const message = response.responseJSON?.message || "Server error!";
             alert(`Unable to list customers: ${message}`);
+        })
+        .always(function () {
+            button.prop("disabled", false);
         });
+    });
+
+    $("#customer_read-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_id").val().trim();
+        const result = $("#customer_result");
+        const button = $("#customer_retrieve-btn");
+
+        result.prop("hidden", true);
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "GET",
+            url: `/customers/${id}`,
+            dataType: "json"
+        })
+            .done(function (response) {
+                result.find("[data-field]").each(function () {
+                    $(this).text(response[this.dataset.field]);
+                });
+                result.prop("hidden", false);
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to retrieve customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
     });
 
     // ****************************************
@@ -143,44 +185,12 @@ $(function () {
         ["WI", "Wisconsin"], ["WY", "Wyoming"]
     ];
 
-    const stateSelect = $("#customer_state");
-    stateSelect.append(new Option("", ""));
-    states.forEach(function (state) {
-        stateSelect.append(new Option(state[0], state[0]));
+    ["#customer_state", "#customer_query_state"].forEach(function (selector) {
+        const stateSelect = $(selector);
+        stateSelect.append(new Option("", ""));
+        states.forEach(function (state) {
+            stateSelect.append(new Option(state[0], state[0]));
+        });
     });
 
-    // ****************************************
-    // Read a Customer
-    // ****************************************
-
-    $("#customer_read-form").submit(function (event) {
-        event.preventDefault();
-
-        const id = $("#customer_id").val().trim();
-        const result = $("#customer_result");
-        const button = $("#customer_retrieve-btn");
-
-        result.prop("hidden", true);
-        button.prop("disabled", true);
-
-        $.ajax({
-            type: "GET",
-            url: `/customers/${id}`,
-            dataType: "json"
-        })
-            .done(function (response) {
-                result.find("[data-field]").each(function () {
-                    $(this).text(response[this.dataset.field]);
-                });
-                result.prop("hidden", false);
-                alert("Success");
-            })
-            .fail(function (response) {
-                const message = response.responseJSON?.message || response.responseText || "Server error!";
-                alert(`Unable to retrieve customer: ${message}`);
-            })
-            .always(function () {
-                button.prop("disabled", false);
-            });
-    });
 });

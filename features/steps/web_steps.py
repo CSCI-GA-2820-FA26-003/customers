@@ -25,6 +25,16 @@ from selenium.webdriver.support import expected_conditions
 ID_PREFIX = "customer_"
 
 
+def _wait_for_alert(context: Any) -> str:
+    """Return and accept the next browser alert."""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    text = alert.text
+    alert.accept()
+    return text
+
+
 @given("the customer service is running")
 def run_customer_service(context: Any):
     """Check that the customer service is running"""
@@ -35,33 +45,51 @@ def run_customer_service(context: Any):
 
 @given("the following customers")
 def load_customers(context: Any):
-    """Delete all customers, then create the ones listed in the table"""
+    """Create the customers listed in the table."""
     rest_endpoint = f"{context.base_url}/customers"
-    response = requests.get(rest_endpoint, timeout=context.wait_seconds)
-    assert response.status_code == 200
-    for customer in response.json():
-        response = requests.delete(
-            f"{rest_endpoint}/{customer['id']}", timeout=context.wait_seconds
-        )
-        assert response.status_code == 204
+    # save ids for read/update/delete tests
+    # use email to retrieve the id of a customer in a later step
+    context.customer_ids = {}
+    context.customer_names = []
     for row in context.table:
         payload = {heading: row[heading] for heading in row.headings}
         response = requests.post(
             rest_endpoint, json=payload, timeout=context.wait_seconds
         )
         assert response.status_code == 201
+        customer = response.json()
+        context.customer_ids[payload["email"]] = customer["id"]
+        context.customer_names.append(
+            f"{payload['first_name']} {payload['last_name']}"
+        )
+        # Upgrade the customer if a membership level is specified as not bronze
+        membership_level = payload.get("membership_level", "bronze")
+        if membership_level != "bronze":
+            response = requests.put(
+                f"{rest_endpoint}/{customer['id']}/upgrade",
+                json={"target_level": membership_level},
+                timeout=context.wait_seconds,
+            )
+            assert response.status_code == 200, response.text
 
 
-@when('I visit the "Customer Admin Portal" page')
+@given('I visit the "Customer Admin Portal" page')
 def visit_customer_admin_portal(context: Any):
     """Visit the Customer Admin Portal page"""
     context.driver.get(context.base_url)
     assert "Customer Admin Portal" in context.driver.title
 
 
-@when('I click the "Search Customer" tab')
-def click_search_customer_tab(context):
-    context.driver.find_element(By.ID, "search-tab").click()
+
+@when('I click the "{tab_name}" tab')
+def click_search_customer_tab(context: Any, tab_name: str):
+    tab_ids = {
+        "Create Customer": "create-tab",
+        "Search Customer": "search-tab",
+        "Manage Customer": "manage-tab",
+    }
+    tab_id = tab_ids.get(tab_name, tab_name)
+    context.driver.find_element(By.ID, tab_id).click()
 
 
 @when('I set the "{element_name}" to "{text_string}"')
@@ -92,23 +120,16 @@ def press_button(context: Any, button: str):
 @then('I should see a successful "{action}" message for customer "{name}"')
 def verify_success_message_for(context: Any, name: str, action: str):
     """Verify the success message in the browser alert"""
-    alert = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.alert_is_present()
+    assert _wait_for_alert(context) == (
+        f"Customer {name} was successfully {action.lower()}!"
     )
-
-    assert alert.text == f"Customer {name} was successfully {action.lower()}!"
-    alert.accept()
 
 
 @then('I should see an error message containing "{message}"')
 def verify_error_message(context: Any, message: str):
     """Verify the error message in the browser alert"""
-    alert = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.alert_is_present()
-    )
-    text = alert.text
-    alert.accept()
-    assert message in text, f'Expected "{message}" in alert, got "{text}"'
+    actual = _wait_for_alert(context)
+    assert message in actual, f'Expected "{message}" in alert, got "{actual}"'
 
 
 @then('the "{element_name}" field should be empty')
@@ -140,28 +161,11 @@ def check_text_in_table(context: Any, text: str, element_name: str):
     )
 
 
-@when('I create a customer "{first_name}" "{last_name}" in "{city}", ' '"{state}"')
-def create_customer(context: Any, **fields: str):
-    """Create a customer through the Create form"""
-    values = {
-        "first_name": fields["first_name"],
-        "last_name": fields["last_name"],
-        "city": fields["city"],
-        "email": f"{fields['first_name']}.{fields['last_name']}@example.com".lower(),
-        "street": "1 Main Street",
-        "postal_code": "10001",
-    }
-    for key, value in values.items():
-        element = context.driver.find_element(By.ID, ID_PREFIX + key)
-        element.clear()
-        element.send_keys(value)
-    state = Select(context.driver.find_element(By.ID, ID_PREFIX + "state"))
-    state.select_by_visible_text(fields["state"])
-    context.driver.find_element(By.ID, "customer_create-btn").click()
-    alert = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.alert_is_present()
-    )
-    alert.accept()
+@then('I should see all customers in the "{element_name}" table')
+def check_all_customers_in_table(context: Any, element_name: str):
+    """Check that every fixture customer appears in a results table."""
+    for customer_name in context.customer_names:
+        check_text_in_table(context, customer_name, element_name)
 
 
 @then('I should not see "{text}" in the "{element_name}" table')
@@ -172,22 +176,6 @@ def check_text_not_in_table(context: Any, text: str, element_name: str):
     WebDriverWait(context.driver, context.wait_seconds).until(
         lambda d: text not in element.text
     )
-@given("a customer with bronze membership exists")
-def create_bronze_customer(context):
-    """Create a customer and remember the details for the Retrieve test."""
-    customer = {
-        "first_name": "Emily",
-        "last_name": "Chen",
-        "email": "emilychen@example.com",
-        "street": "50 West 4th Street",
-        "city": "New York",
-        "state": "NY",
-        "postal_code": "10012",
-    }
-    response = requests.post(f"{context.base_url}/customers", json=customer, timeout=10)
-    assert response.status_code == 201, response.text
-    context.customer_id = response.json()["id"]
-    context.expected_customer = {**customer, "membership_level": "bronze"}
 
 
 @when("I enter the nonexistent customer's ID")
@@ -196,13 +184,20 @@ def enter_existing_customer_id(context):
     set_text_field(context, "ID", str(context.customer_id))
 
 
-@then('I should see an alert saying "{message}"')
-def verify_alert_message(context, message):
-    alert = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.alert_is_present()
+@when('I enter the customer ID for "{email}"')
+def enter_customer_id_by_email(context: Any, email: str):
+    """Look up a fixture customer by email and enter its ID."""
+    customer_id = context.customer_ids[email]
+    response = requests.get(
+        f"{context.base_url}/customers/{customer_id}",
+        timeout=context.wait_seconds,
     )
-    assert alert.text == message
-    alert.accept()
+    assert response.status_code == 200, response.text
+    customer = response.json()
+    context.expected_customer = {
+        field: value for field, value in customer.items() if field != "id"
+    }
+    set_text_field(context, "ID", str(customer_id))
 
 
 @then("the form should show the existing customer's details")
@@ -219,20 +214,25 @@ def verify_customer_details(context):
 @given("a customer ID that does not exist")
 def prepare_nonexistent_customer_id(context):
     """Create and delete a test customer so its ID is known to be absent."""
-    create_bronze_customer(context)
+    customer = {
+        "first_name": "invalid",
+        "last_name": "customer",
+        "email": "invalid.customer@example.com",
+        "street": "123 Main St",
+        "city": "Anytown",
+        "state": "NY",
+        "postal_code": "00000",
+    }
+    response = requests.post(
+        f"{context.base_url}/customers",
+        json=customer,
+        timeout=context.wait_seconds,
+    )
+    assert response.status_code == 201, response.text
+    context.customer_id = response.json()["id"]
+    context.expected_customer = {**customer, "membership_level": "bronze"}
     response = requests.delete(
         f"{context.base_url}/customers/{context.customer_id}",
         timeout=10,
     )
     assert response.status_code == 204, response.text
-
-
-@then('I should see an alert containing "{message}"')
-def verify_alert_contains(context, message):
-    """Check that the alert contains the expected text."""
-    alert = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.alert_is_present()
-    )
-    actual = alert.text
-    alert.accept()
-    assert message in actual, f"Expected {message!r} in alert, got {actual!r}"
