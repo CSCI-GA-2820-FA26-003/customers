@@ -35,15 +35,21 @@ def run_customer_service(context: Any):
 
 @given("the following customers")
 def load_customers(context: Any):
-    """Create the customers in the table through the REST API"""
-    for row in context.table:
-        customer = {heading: row[heading] for heading in row.headings}
-        resp = requests.post(
-            f"{context.base_url}/customers", json=customer, timeout=context.wait_seconds
+    """Delete all customers, then create the ones listed in the table"""
+    rest_endpoint = f"{context.base_url}/customers"
+    response = requests.get(rest_endpoint, timeout=context.wait_seconds)
+    assert response.status_code == 200
+    for customer in response.json():
+        response = requests.delete(
+            f"{rest_endpoint}/{customer['id']}", timeout=context.wait_seconds
         )
-        assert (
-            resp.status_code == 201
-        ), f"Could not create {customer['email']}: {resp.text}"
+        assert response.status_code == 204
+    for row in context.table:
+        payload = {heading: row[heading] for heading in row.headings}
+        response = requests.post(
+            rest_endpoint, json=payload, timeout=context.wait_seconds
+        )
+        assert response.status_code == 201
 
 
 @when('I visit the "Customer Admin Portal" page')
@@ -122,6 +128,16 @@ def check_dropdown_unset(context: Any, element_name: str):
     assert selected_option.text == ""
 
 
+@then('I should see "{text}" in the "{element_name}" table')
+def check_text_in_table(context: Any, text: str, element_name: str):
+    """Check that text appears in a results table"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, element_id))
+    )
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        lambda d: text in element.text
+    )
 @given("a customer with bronze membership exists")
 def create_bronze_customer(context):
     """Create a customer and remember the details for the Retrieve test."""

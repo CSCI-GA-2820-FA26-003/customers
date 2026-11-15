@@ -5,6 +5,9 @@ Feature: The eCommerce customer service back-end
 
 Background:
     Given the customer service is running
+        And the following customers
+        | first_name | last_name | email                  | street             | city     | state | postal_code |
+        | Emily      | Chen      | emily.chen@example.com | 50 West 4th Street | New York | NY    | 10012       |
 
 Scenario: Create a Customer
     When I visit the "Customer Admin Portal" page
@@ -25,6 +28,12 @@ Scenario: Create a Customer
     And the "City" field should be empty
     And the "Street" field should be empty
     And the "Postal Code" field should be empty
+
+Scenario: List all Customers
+    When I visit the "Customer Admin Portal" page
+    And I press the "Search" button
+    Then I should see "Emily" in the "Search Results" table
+
     
 Scenario: Create a Customer with an email that is already used
     Given the following customers
