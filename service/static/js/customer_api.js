@@ -90,6 +90,10 @@ $(function () {
         .done(function(response){
             const tbody = $("#customer_search_results tbody");
             tbody.empty();
+            if (response.length === 0) {
+                alert("Customer does not exist with the given search criteria.");
+                return;
+            }
             response.forEach(function (customer){
                 const row = $("<tr></tr>");
                 [
@@ -136,7 +140,6 @@ $(function () {
                     $(this).text(response[this.dataset.field]);
                 });
                 result.prop("hidden", false);
-                alert("Success");
             })
             .fail(function (response) {
                 const message = response.responseJSON?.message || response.responseText || "Server error!";
