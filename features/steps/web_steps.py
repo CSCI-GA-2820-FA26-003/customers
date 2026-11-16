@@ -122,6 +122,13 @@ def verify_success_message_for(context: Any, name: str, action: str):
     )
 
 
+@then('I should see a success message saying "{message}"')
+def verify_success_alert(context: Any, message: str):
+    """Verify the exact text of the browser alert."""
+    actual = _wait_for_alert(context)
+    assert actual == message, f'Expected "{message}" in alert, got "{actual}"'
+
+
 @then('I should see an error message containing "{message}"')
 def verify_error_message(context: Any, message: str):
     """Verify the error message in the browser alert"""
@@ -195,6 +202,12 @@ def enter_customer_id_by_email(context: Any, email: str):
         field: value for field, value in customer.items() if field != "id"
     }
     set_text_field(context, "ID", str(customer_id))
+
+
+@then('the "{element_name}" field should contain the ID for "{email}"')
+def check_customer_id_field(context: Any, element_name: str, email: str):
+    """Check that the form shows the selected customer's ID."""
+    check_field_value(context, element_name, str(context.customer_ids[email]))
 
 
 @then("the form should show the existing customer's details")

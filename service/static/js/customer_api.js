@@ -133,6 +133,7 @@ $(function () {
         ].forEach(function (field) {
             $("#customer_manage_" + field).val(customer[field]);
         });
+        $("#customer_delete_id").val(customer.id);
         update_upgrade_options(customer.membership_level);
     }
 
@@ -244,6 +245,34 @@ $(function () {
             .fail(function (response) {
                 const message = response.responseJSON?.message || response.responseText || "Server error!";
                 alert(`Unable to retrieve customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
+    });
+
+    // ****************************************
+    // Delete a Customer
+    // ****************************************
+
+    $("#customer_delete-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_delete_id").val().trim();
+        const button = $("#customer_delete-btn");
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "DELETE",
+            url: `/customers/${id}`
+        })
+            .done(function () {
+                $("#customer_result").prop("hidden", true);
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to delete customer: ${message}`);
             })
             .always(function () {
                 button.prop("disabled", false);
