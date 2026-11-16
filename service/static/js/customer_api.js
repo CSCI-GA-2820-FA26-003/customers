@@ -66,18 +66,25 @@ $(function () {
     // Update a Customer
     // ****************************************
 
-    $("#customer_update-btn").click(function (){
-        const customer_id = $("#customer_id").val().trim();
+    $("#customer_manage-form").submit(function (event) {
+        event.preventDefault();
+
+        const customer_id = $("#customer_manage_id").val();
+        const button = $("#customer_update-btn");
+        if (!customer_id) {
+            return;
+        }
 
         const data = {
-            first_name: $("#customer_first_name").val(),
-            last_name: $("#customer_last_name").val(),
-            email: $("#customer_email").val(),
-            street: $("#customer_street").val(),
-            city: $("#customer_city").val(),
-            state: $("#customer_state").val(),
-            postal_code: $("#customer_postal_code").val()
+            first_name: $("#customer_manage_first_name").val(),
+            last_name: $("#customer_manage_last_name").val(),
+            email: $("#customer_manage_email").val(),
+            street: $("#customer_manage_street").val(),
+            city: $("#customer_manage_city").val(),
+            state: $("#customer_manage_state").val(),
+            postal_code: $("#customer_manage_postal_code").val()
         };
+        button.prop("disabled", true);
 
         $.ajax({
             type: "PUT",
@@ -86,12 +93,32 @@ $(function () {
             data: JSON.stringify(data)
         })
             .done(function (response) {
-                update_form_data(response);
+                update_manage_form(response);
+                // Keep the search results in sync with the edited customer
+                $("#customer_search_results tbody tr").each(function () {
+                    const row = $(this);
+                    if (row.data("customer")?.id === response.id) {
+                        row.data("customer", response);
+                        [
+                            response.first_name,
+                            response.last_name,
+                            response.street,
+                            response.city,
+                            response.state,
+                            response.postal_code
+                        ].forEach(function (value, index) {
+                            row.children().eq(index + 1).text(value);
+                        });
+                    }
+                });
                 alert("Success");
             })
             .fail(function (response) {
                 const message = response.responseJSON?.message || "Server error!";
                 alert(`Unable to update customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
             });
     });
 
@@ -100,13 +127,18 @@ $(function () {
     // list all Customers
     // ****************************************
 
-    $("#customer_search-btn").click(function (){
+    $("#customer_query-form").submit(function (event) {
+        event.preventDefault();
+
+        const button = $("#customer_search-btn");
+        button.prop("disabled", true);
+
         const filters = {};
         [
             "first_name", "last_name", "city", 
             "state", "postal_code", "membership_level"
         ].forEach(function(field){
-            const value = $("#customer_" + field).val();
+            const value = $("#customer_query_" + field).val();
             if (value && value.trim()) {
                 filters[field] = value.trim();
             }
@@ -120,6 +152,11 @@ $(function () {
         .done(function(response){
             const tbody = $("#customer_search_results tbody");
             tbody.empty();
+            set_manage_tab_enabled(response.length > 0);
+            if (response.length === 0) {
+                alert("Customer does not exist with the given search criteria.");
+                return;
+            }
             response.forEach(function (customer){
                 const row = $("<tr></tr>");
                 [
@@ -134,13 +171,145 @@ $(function () {
                 ].forEach(function(value){
                     row.append($("<td></td>").text(value));
                 });
+                row.data("customer", customer);
                 tbody.append(row);
             });
         })
         .fail(function(response){
             const message = response.responseJSON?.message || "Server error!";
             alert(`Unable to list customers: ${message}`);
+        })
+        .always(function () {
+            button.prop("disabled", false);
         });
+    });
+
+    // ****************************************
+    // Open a search result in Manage Customer
+    // ****************************************
+
+    function update_manage_form(customer) {
+        [
+            "id", "first_name", "last_name", "email", "street",
+            "city", "state", "postal_code", "membership_level"
+        ].forEach(function (field) {
+            $("#customer_manage_" + field).val(customer[field]);
+        });
+        update_upgrade_options(customer.membership_level);
+    }
+
+    // ****************************************
+    // Upgrade a Customer's membership
+    // ****************************************
+
+    const MEMBERSHIP_LEVELS = ["bronze", "silver", "gold"];
+
+    // Only offer levels above the current one; the API rejects downgrades
+    function update_upgrade_options(current_level) {
+        const select = $("#customer_upgrade_level");
+        select.empty();
+        const higher = MEMBERSHIP_LEVELS.slice(MEMBERSHIP_LEVELS.indexOf(current_level) + 1);
+        if (higher.length === 0) {
+            select.append(new Option("Already at highest level", ""));
+        } else {
+            higher.forEach(function (level) {
+                const label = level.charAt(0).toUpperCase() + level.slice(1);
+                select.append(new Option(label, level));
+            });
+        }
+        select.prop("disabled", higher.length === 0);
+        $("#customer_upgrade-btn").prop("disabled", higher.length === 0);
+    }
+
+    $("#customer_upgrade-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_manage_id").val();
+        const target_level = $("#customer_upgrade_level").val();
+        const button = $("#customer_upgrade-btn");
+        if (!id || !target_level) {
+            return;
+        }
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "PUT",
+            url: `/customers/${id}/upgrade`,
+            contentType: "application/json",
+            data: JSON.stringify({ target_level: target_level })
+        })
+            .done(function (response) {
+                update_manage_form(response);
+                // Keep the search results in sync with the new level
+                $("#customer_search_results tbody tr").each(function () {
+                    const row = $(this);
+                    if (row.data("customer")?.id === response.id) {
+                        row.data("customer", response);
+                        row.children().last().text(response.membership_level);
+                    }
+                });
+                alert(`Customer ${response.first_name} ${response.last_name} was successfully upgraded!`);
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to upgrade customer: ${message}`);
+                button.prop("disabled", false);
+            });
+    });
+
+    // The Manage tab is only usable once a search has returned results
+    function set_manage_tab_enabled(enabled) {
+        const tab = $("#manage-tab");
+        tab.parent().toggleClass("disabled", !enabled);
+        tab.attr("aria-disabled", String(!enabled));
+        tab.attr("title", enabled ? "" : "Search for customers first");
+    }
+
+    // Runs before Bootstrap's delegated tab handler on document
+    $("#manage-tab").on("click", function (event) {
+        if ($(this).parent().hasClass("disabled")) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
+
+    $("#customer_search_results tbody").on("click", "tr", function () {
+        const customer = $(this).data("customer");
+        if (!customer) {
+            return;
+        }
+        update_manage_form(customer);
+        $("#manage-tab").tab("show");
+    });
+
+    $("#customer_read-form").submit(function (event) {
+        event.preventDefault();
+
+        const id = $("#customer_id").val().trim();
+        const result = $("#customer_result");
+        const button = $("#customer_retrieve-btn");
+
+        result.prop("hidden", true);
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "GET",
+            url: `/customers/${id}`,
+            dataType: "json"
+        })
+            .done(function (response) {
+                result.find("[data-field]").each(function () {
+                    $(this).text(response[this.dataset.field]);
+                });
+                result.prop("hidden", false);
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || response.responseText || "Server error!";
+                alert(`Unable to retrieve customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
     });
 
     // ****************************************
@@ -178,9 +347,12 @@ $(function () {
         ["WI", "Wisconsin"], ["WY", "Wyoming"]
     ];
 
-    const stateSelect = $("#customer_state");
-    stateSelect.append(new Option("", ""));
-    states.forEach(function (state) {
-        stateSelect.append(new Option(state[0], state[0]));
+    ["#customer_state", "#customer_query_state", "#customer_manage_state"].forEach(function (selector) {
+        const stateSelect = $(selector);
+        stateSelect.append(new Option("", ""));
+        states.forEach(function (state) {
+            stateSelect.append(new Option(state[0], state[0]));
+        });
     });
+
 });
