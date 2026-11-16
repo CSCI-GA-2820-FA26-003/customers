@@ -59,9 +59,7 @@ def load_customers(context: Any):
         assert response.status_code == 201
         customer = response.json()
         context.customer_ids[payload["email"]] = customer["id"]
-        context.customer_names.append(
-            f"{payload['first_name']} {payload['last_name']}"
-        )
+        context.customer_names.append(f"{payload['first_name']} {payload['last_name']}")
         # Upgrade the customer if a membership level is specified as not bronze
         membership_level = payload.get("membership_level", "bronze")
         if membership_level != "bronze":
@@ -78,7 +76,6 @@ def visit_customer_admin_portal(context: Any):
     """Visit the Customer Admin Portal page"""
     context.driver.get(context.base_url)
     assert "Customer Admin Portal" in context.driver.title
-
 
 
 @when('I click the "{tab_name}" tab')
@@ -203,8 +200,12 @@ def enter_customer_id_by_email(context: Any, email: str):
 @then("the form should show the existing customer's details")
 def verify_customer_details(context):
     """Verify that the Read section displays the retrieved customer's details."""
-    result = context.driver.find_element(By.ID, "customer_result")
-    assert result.is_displayed()
+    # The section is always in the DOM (just hidden), so wait for the AJAX
+    # response to un-hide it instead of checking immediately.
+    result = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.visibility_of_element_located((By.ID, "customer_result")),
+        message="Customer details were not displayed",
+    )
 
     for field, expected in context.expected_customer.items():
         actual = result.find_element(By.CSS_SELECTOR, f'[data-field="{field}"]').text
@@ -236,3 +237,68 @@ def prepare_nonexistent_customer_id(context):
         timeout=10,
     )
     assert response.status_code == 204, response.text
+
+
+@then('the "{element_name}" field should contain "{text_string}"')
+def check_field_value(context: Any, element_name: str, text_string: str):
+    """Check that a field or dropdown holds the expected value"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.visibility_of_element_located((By.ID, element_id))
+    )
+    actual = element.get_attribute("value")
+    assert (
+        actual == text_string
+    ), f"{element_id}: expected {text_string!r}, got {actual!r}"
+
+
+@then('the "{button}" button should be disabled')
+def check_button_disabled(context: Any, button: str):
+    """Check that a button is disabled"""
+    button_id = ID_PREFIX + button.lower().replace(" ", "_") + "-btn"
+    element = context.driver.find_element(By.ID, button_id)
+    WebDriverWait(context.driver, context.wait_seconds).until(
+        lambda d: not element.is_enabled()
+    )
+
+
+@when('I open "{name}" from the search results')
+def open_customer_from_search(context: Any, name: str):
+    """Search by the customer's last name and open them in Manage Customer"""
+    last_name = name.split()[-1]
+    click_search_customer_tab(context, "Search Customer")
+    set_text_field(context, "Query Last Name", last_name)
+    press_button(context, "Search")
+    _click_row_in_table(context, name, "Search Results")
+
+
+@when('the customer "{email}" is deleted')
+def delete_customer_by_email(context: Any, email: str):
+    """Delete a fixture customer through the API, behind the UI's back"""
+    customer_id = context.customer_ids[email]
+    response = requests.delete(
+        f"{context.base_url}/customers/{customer_id}",
+        timeout=context.wait_seconds,
+    )
+    assert response.status_code == 204, response.text
+
+
+@when('the customer "{email}" is upgraded to "{level}"')
+def upgrade_customer_by_email(context: Any, email: str, level: str):
+    """Upgrade a fixture customer through the API, behind the UI's back"""
+    customer_id = context.customer_ids[email]
+    response = requests.put(
+        f"{context.base_url}/customers/{customer_id}/upgrade",
+        json={"target_level": level},
+        timeout=context.wait_seconds,
+    )
+    assert response.status_code == 200, response.text
+
+
+def _click_row_in_table(context: Any, text: str, element_name: str):
+    """Click the first table row that contains the given text"""
+    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    check_text_in_table(context, text, element_name)
+    rows = context.driver.find_elements(By.CSS_SELECTOR, f"#{element_id} tbody tr")
+    row = next(r for r in rows if text in r.text)
+    row.click()
