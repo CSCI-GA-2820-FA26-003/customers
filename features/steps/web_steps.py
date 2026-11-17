@@ -293,12 +293,13 @@ def delete_customer_by_email(context: Any, email: str):
     assert response.status_code == 204, response.text
 
 
-@when('the customer "{email}" is upgraded to "{level}"')
-def upgrade_customer_by_email(context: Any, email: str, level: str):
-    """Upgrade a fixture customer through the API, behind the UI's back"""
+@when('the customer "{email}" is {action} to "{level}"')
+def change_membership_by_email(context: Any, email: str, action: str, level: str):
+    """Upgrade or downgrade a fixture customer through the API, behind the UI's back"""
+    endpoint = {"upgraded": "upgrade", "downgraded": "downgrade"}[action]
     customer_id = context.customer_ids[email]
     response = requests.put(
-        f"{context.base_url}/customers/{customer_id}/upgrade",
+        f"{context.base_url}/customers/{customer_id}/{endpoint}",
         json={"target_level": level},
         timeout=context.wait_seconds,
     )
