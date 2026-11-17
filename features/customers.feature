@@ -117,3 +117,19 @@ Scenario: Upgrade a customer to a lower level than their current one
     And I select "Silver" in the "Upgrade Level" dropdown
     And I press the "Upgrade" button
     Then I should see an error message containing "Cannot downgrade membership via upgrade action"
+
+
+# Update a Customer
+Scenario: Update a customer
+    When I open "Sophia Davis" from the search results
+    And I set the "Manage Last Name" to "Birch"
+    And I press the "Update" button
+    Then I should see the message "Success"
+    And the "Manage Last Name" field should contain "Birch"
+
+Scenario: Update a customer that does not exist
+    When I open "Sophia Davis" from the search results
+    And the customer "sophia.davis@example.com" is deleted
+    And I set the "Manage Last Name" to "Birch"
+    And I press the "Update" button
+    Then I should see an error message containing "not found"

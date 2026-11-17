@@ -4,6 +4,7 @@ $(function () {
     // ****************************************
 
     function update_form_data(customer) {
+        $("#customer_id").val(customer.id);
         $("#customer_first_name").val(customer.first_name);
         $("#customer_last_name").val(customer.last_name);
         $("#customer_email").val(customer.email);
@@ -15,6 +16,7 @@ $(function () {
     }
 
     function clear_form_data() {
+        $("#customer_id").val("");
         $("#customer_first_name").val("");
         $("#customer_last_name").val("");
         $("#customer_email").val("");
@@ -58,6 +60,66 @@ $(function () {
                 alert(`Customer ${response.first_name} ${response.last_name} was successfully created!`);
             })
             .fail(show_error);
+    });
+
+    // ****************************************
+    // Update a Customer
+    // ****************************************
+
+    $("#customer_manage-form").submit(function (event) {
+        event.preventDefault();
+
+        const customer_id = $("#customer_manage_id").val();
+        const button = $("#customer_update-btn");
+        if (!customer_id) {
+            return;
+        }
+
+        const data = {
+            first_name: $("#customer_manage_first_name").val(),
+            last_name: $("#customer_manage_last_name").val(),
+            email: $("#customer_manage_email").val(),
+            street: $("#customer_manage_street").val(),
+            city: $("#customer_manage_city").val(),
+            state: $("#customer_manage_state").val(),
+            postal_code: $("#customer_manage_postal_code").val()
+        };
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "PUT",
+            url: `/customers/${customer_id}`,
+            contentType: "application/json",
+            data: JSON.stringify(data)
+        })
+            .done(function (response) {
+                update_manage_form(response);
+                // Keep the search results in sync with the edited customer
+                $("#customer_search_results tbody tr").each(function () {
+                    const row = $(this);
+                    if (row.data("customer")?.id === response.id) {
+                        row.data("customer", response);
+                        [
+                            response.first_name,
+                            response.last_name,
+                            response.street,
+                            response.city,
+                            response.state,
+                            response.postal_code
+                        ].forEach(function (value, index) {
+                            row.children().eq(index + 1).text(value);
+                        });
+                    }
+                });
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || "Server error!";
+                alert(`Unable to update customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
     });
 
 

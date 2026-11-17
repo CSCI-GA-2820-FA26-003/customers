@@ -122,6 +122,16 @@ def verify_success_message_for(context: Any, name: str, action: str):
     )
 
 
+@then('I should see the message "{message}"')
+def verify_message(context: Any, message: str):
+    """Verify the text of the browser alert"""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    assert alert.text == message, f"Got alert: {alert.text}"
+    alert.accept()
+
+
 @then('I should see an error message containing "{message}"')
 def verify_error_message(context: Any, message: str):
     """Verify the error message in the browser alert"""
