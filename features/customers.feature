@@ -118,6 +118,29 @@ Scenario: Upgrade a customer to a lower level than their current one
     And I press the "Upgrade" button
     Then I should see an error message containing "Cannot downgrade membership via upgrade action"
 
+# Downgrade a Customer
+Scenario: Downgrade a customer's membership level
+    When I open "Michael Brown" from the search results
+    Then the "Manage Membership Level" field should contain "gold"
+    When I select "Bronze" in the "Downgrade Level" dropdown
+    And I press the "Downgrade" button
+    Then I should see a successful "downgraded" message for customer "Michael Brown"
+    And the "Manage Membership Level" field should contain "bronze"
+    And the "Downgrade" button should be disabled
+
+Scenario: Downgrade a customer that does not exist
+    When I open "Michael Brown" from the search results
+    And the customer "michael.brown@example.com" is deleted
+    And I select "Silver" in the "Downgrade Level" dropdown
+    And I press the "Downgrade" button
+    Then I should see an error message containing "not found"
+
+Scenario: Downgrade a customer to a higher level than their current one
+    When I open "Michael Brown" from the search results
+    And the customer "michael.brown@example.com" is downgraded to "bronze"
+    And I select "Silver" in the "Downgrade Level" dropdown
+    And I press the "Downgrade" button
+    Then I should see an error message containing "Cannot upgrade membership via downgrade action"
 
 # Update a Customer
 Scenario: Update a customer
