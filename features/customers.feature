@@ -118,6 +118,24 @@ Scenario: Upgrade a customer to a lower level than their current one
     And I press the "Upgrade" button
     Then I should see an error message containing "Cannot downgrade membership via upgrade action"
 
+# Delete a Customer
+Scenario: Delete an existing customer by ID
+    When I open "Emily Chen" from the search results
+    Then the "Delete ID" field should contain the ID for "emily.chen@example.com"
+    When I press the "Delete" button
+    Then I should see a success message saying "Success"
+    When I click the "Search Customer" tab
+    And I set the "Query Last Name" to "Chen"
+    And I press the "Search" button
+    Then I should see "Alex Chen" in the "Search Results" table
+    And I should not see "Emily Chen" in the "Search Results" table
+
+Scenario: Delete a customer that no longer exists
+    When I open "Emily Chen" from the search results
+    Then the "Delete ID" field should contain the ID for "emily.chen@example.com"
+    When the customer "emily.chen@example.com" is deleted
+    And I press the "Delete" button
+    Then I should see a success message saying "Success"
 # Downgrade a Customer
 Scenario: Downgrade a customer's membership level
     When I open "Michael Brown" from the search results
