@@ -43,12 +43,33 @@ The API is available at http://localhost:8080. Request and response bodies use J
 
 ### Deploy with Kubernetes
 
-For the coursework environment, deploy all Kubernetes resources, including
-the Secret, with:
+Run the following commands from the repository root in the development
+container. If `honcho` is running on port `8080`, stop it before creating
+the cluster so the k3d load balancer can use that port.
 
 ```bash
+make cluster
+make build
+make push
 make deploy
 ```
+
+These commands create a local k3d cluster and registry, build and push
+the customer service image, and apply the Kubernetes manifests.
+
+Wait for the customer service deployment to roll out:
+
+```bash
+kubectl rollout status deployment/customers
+```
+
+Verify that the service responds through the Ingress:
+
+```bash
+curl -i http://localhost:8080/health
+```
+
+Expect `200 OK` and a JSON response of `{"status":"OK"}`.
 
 The PostgreSQL Secret is included in `k8s/postgres/secret.yaml`. It can also
 be created manually with:
@@ -61,6 +82,23 @@ kubectl create secret generic postgres-secret \
 These credentials are for coursework only; do not
 commit real production credentials. Inject production credentials through a
 secret manager instead.
+
+### Use the Customer Admin Portal
+
+With the service running, open `http://localhost:8080/` in your browser.
+
+1. In **Create Customer**, fill in the required fields and click **Create**.
+   Open **Search Customer** and note the ID in the **Customer ID** field.
+2. In **Search Customer**, enter a customer ID and click **Retrieve** to view
+   that customer's details. To list all customers, leave **Search by Filters**
+   blank and click **Search**. To narrow the list, use **City**, **State**,
+   **Last Name**, or **Membership Level**. Select a **State** whenever you enter
+   a **City**.
+3. Click a row in **Search Results** to open the customer in **Manage Customer**.
+   Edit the customer's details and click **Update**, or select a target level
+   under **Upgrade Membership** or **Downgrade Membership** and click the
+   corresponding button. To remove the customer, check the prefilled ID under
+   **Delete Customer** and click **Delete**.
 
 ## Database Structure
 
@@ -113,25 +151,22 @@ Things to know:
 
 Examples use `http://localhost:8080`.
 
-### Get Service Information
+### Open the Customer Admin Portal
 
-`GET /`
+`GET /` serves the Customer Admin Portal. Open `http://localhost:8080/` in your browser.
+
+### Check service health
+
+`GET /health` returns `200 OK` with a JSON status. To check the running service, run:
 
 ```bash
-curl -i http://localhost:8080/
+curl -i http://localhost:8080/health
 ```
 
-Returns service information and the customers endpoint URL with `200 OK`.
-
-Example response:
+The response body is:
 
 ```json
-{
-  "name": "Customer REST API Service",
-  "version": "1.0",
-  "description": "Create, read, update, delete and list the customers that are registered in the e-commerce store",
-  "paths": "http://localhost:8080/customers"
-}
+{"status":"OK"}
 ```
 
 ### Create a Customer
@@ -247,17 +282,28 @@ curl -i -X DELETE http://localhost:8080/customers/1
 
 Returns `204 No Content` with an empty body. Deleting an ID that does not exist also returns `204`, making repeated delete requests idempotent.
 
-### List All Customers
+### List and Query Customers
 
-`GET /customers`
+`GET /customers` lists all customers when you omit query parameters.
 
 ```bash
 curl -i http://localhost:8080/customers
 ```
 
-Returns a JSON array of all customers with `200 OK`. If no customers exist, returns an empty array `[]`.
+To filter the results, use `first_name`, `last_name`, `email`, `city`,
+`state`, `postal_code`, or `membership_level`. When you supply multiple
+filters, each customer must match all of them. Include `state` whenever
+you filter by `city`.
 
-Example response:
+```bash
+curl -i --get http://localhost:8080/customers \
+  --data-urlencode "city=New York" \
+  --data-urlencode "state=NY" \
+  --data-urlencode "membership_level=bronze"
+```
+
+The service returns `200 OK` with a JSON array. If no customers match,
+the response body is `[]`.
 
 ```json
 [
@@ -274,6 +320,50 @@ Example response:
   }
 ]
 ```
+
+The service returns `400 Bad Request` if you supply `city` without `state`,
+leave a supported filter blank, or supply an invalid `state`,
+`membership_level`, `postal_code`, or `email`. The following request
+returns `400 Bad Request` because it omits `state`.
+
+```bash
+curl -i --get http://localhost:8080/customers \
+  --data-urlencode "city=New York"
+```
+
+### Upgrade or Downgrade Customer Membership
+
+Use `PUT /customers/{id}/upgrade` to move to a higher membership level
+and `PUT /customers/{id}/downgrade` to move to a lower level. Both
+endpoints accept a JSON body with a `target_level` field. The levels
+in ascending order are `bronze`, `silver`, and `gold`.
+
+Replace `1` with the ID of an existing customer. Upgrade the customer
+to `gold`:
+
+```bash
+curl -i -X PUT http://localhost:8080/customers/1/upgrade \
+  -H 'Content-Type: application/json' \
+  -d '{"target_level":"gold"}'
+```
+
+Then downgrade the same customer to `silver`:
+
+```bash
+curl -i -X PUT http://localhost:8080/customers/1/downgrade \
+  -H 'Content-Type: application/json' \
+  -d '{"target_level":"silver"}'
+```
+
+Both endpoints return `200 OK` and the full customer object, including
+`membership_level`. If the target matches the current level, the service
+also returns `200 OK`.
+
+| Status | When it occurs |
+| --- | --- |
+| `400 Bad Request` | The JSON body omits `target_level` or supplies an invalid level. |
+| `404 Not Found` | The customer ID does not exist. |
+| `409 Conflict` | An upgrade targets a lower level, or a downgrade targets a higher level. |
 
 ### Error responses
 
@@ -295,6 +385,34 @@ Registered error handlers return a JSON object with `status`, `error`, and `mess
 | `409 Conflict` | Creating a customer, or changing a customer's email, to an email that already belongs to another customer. |
 | `415 Unsupported Media Type` | Sending a create/update request without a supported JSON content type. |
 | `500 Internal Server Error` | An unexpected server error. |
+
+## Run the tests
+
+### Unit tests
+
+Run the tests from the repository root in the development container.
+Make sure PostgreSQL is running and set `DATABASE_URI` to a dedicated
+test database. The unit tests drop and recreate tables.
+
+```bash
+make test
+```
+
+### Selenium BDD tests
+
+In the development container, set `DATABASE_URI` to the test database
+and start the service from the repository root:
+
+```bash
+honcho start
+```
+
+Keep the service running. In a second terminal in the development
+container, run the scenarios with headless Chrome:
+
+```bash
+BASE_URL=http://localhost:8080 DRIVER=chrome behave
+```
 
 ## Contents
 
