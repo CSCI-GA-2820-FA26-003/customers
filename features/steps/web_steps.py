@@ -127,6 +127,16 @@ def verify_success_alert(context: Any, message: str):
     """Verify the exact text of the browser alert."""
     actual = _wait_for_alert(context)
     assert actual == message, f'Expected "{message}" in alert, got "{actual}"'
+    
+    
+@then('I should see the message "{message}"')
+def verify_message(context: Any, message: str):
+    """Verify the text of the browser alert"""
+    alert = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.alert_is_present()
+    )
+    assert alert.text == message, f"Got alert: {alert.text}"
+    alert.accept()
 
 
 @then('I should see an error message containing "{message}"')
@@ -296,12 +306,13 @@ def delete_customer_by_email(context: Any, email: str):
     assert response.status_code == 204, response.text
 
 
-@when('the customer "{email}" is upgraded to "{level}"')
-def upgrade_customer_by_email(context: Any, email: str, level: str):
-    """Upgrade a fixture customer through the API, behind the UI's back"""
+@when('the customer "{email}" is {action} to "{level}"')
+def change_membership_by_email(context: Any, email: str, action: str, level: str):
+    """Upgrade or downgrade a fixture customer through the API, behind the UI's back"""
+    endpoint = {"upgraded": "upgrade", "downgraded": "downgrade"}[action]
     customer_id = context.customer_ids[email]
     response = requests.put(
-        f"{context.base_url}/customers/{customer_id}/upgrade",
+        f"{context.base_url}/customers/{customer_id}/{endpoint}",
         json={"target_level": level},
         timeout=context.wait_seconds,
     )

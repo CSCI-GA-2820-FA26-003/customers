@@ -238,6 +238,11 @@
               </select>
             </div>
           </div>
+           <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-6">
+              <button id="customer_update-btn" class="btn btn-primary" type="submit">Update</button>
+            </div>
+          </div>
         </form>
         <h3>Delete Customer</h3>
         <form id="customer_delete-form" class="form-horizontal">
@@ -264,6 +269,21 @@
             <div class="col-sm-2">
               <button id="customer_upgrade-btn" class="btn btn-primary" type="submit" disabled>
                 Upgrade
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <h3>Downgrade Membership</h3>
+        <form id="customer_downgrade-form" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="customer_downgrade_level">Downgrade To</label>
+            <div class="col-sm-6">
+              <select id="customer_downgrade_level" class="form-control" required></select>
+            </div>
+            <div class="col-sm-2">
+              <button id="customer_downgrade-btn" class="btn btn-warning" type="submit" disabled>
+                Downgrade
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ $(function () {
     // ****************************************
 
     function update_form_data(customer) {
+        $("#customer_id").val(customer.id);
         $("#customer_first_name").val(customer.first_name);
         $("#customer_last_name").val(customer.last_name);
         $("#customer_email").val(customer.email);
@@ -15,6 +16,7 @@ $(function () {
     }
 
     function clear_form_data() {
+        $("#customer_id").val("");
         $("#customer_first_name").val("");
         $("#customer_last_name").val("");
         $("#customer_email").val("");
@@ -58,6 +60,66 @@ $(function () {
                 alert(`Customer ${response.first_name} ${response.last_name} was successfully created!`);
             })
             .fail(show_error);
+    });
+
+    // ****************************************
+    // Update a Customer
+    // ****************************************
+
+    $("#customer_manage-form").submit(function (event) {
+        event.preventDefault();
+
+        const customer_id = $("#customer_manage_id").val();
+        const button = $("#customer_update-btn");
+        if (!customer_id) {
+            return;
+        }
+
+        const data = {
+            first_name: $("#customer_manage_first_name").val(),
+            last_name: $("#customer_manage_last_name").val(),
+            email: $("#customer_manage_email").val(),
+            street: $("#customer_manage_street").val(),
+            city: $("#customer_manage_city").val(),
+            state: $("#customer_manage_state").val(),
+            postal_code: $("#customer_manage_postal_code").val()
+        };
+        button.prop("disabled", true);
+
+        $.ajax({
+            type: "PUT",
+            url: `/customers/${customer_id}`,
+            contentType: "application/json",
+            data: JSON.stringify(data)
+        })
+            .done(function (response) {
+                update_manage_form(response);
+                // Keep the search results in sync with the edited customer
+                $("#customer_search_results tbody tr").each(function () {
+                    const row = $(this);
+                    if (row.data("customer")?.id === response.id) {
+                        row.data("customer", response);
+                        [
+                            response.first_name,
+                            response.last_name,
+                            response.street,
+                            response.city,
+                            response.state,
+                            response.postal_code
+                        ].forEach(function (value, index) {
+                            row.children().eq(index + 1).text(value);
+                        });
+                    }
+                });
+                alert("Success");
+            })
+            .fail(function (response) {
+                const message = response.responseJSON?.message || "Server error!";
+                alert(`Unable to update customer: ${message}`);
+            })
+            .always(function () {
+                button.prop("disabled", false);
+            });
     });
 
 
@@ -134,38 +196,45 @@ $(function () {
             $("#customer_manage_" + field).val(customer[field]);
         });
         $("#customer_delete_id").val(customer.id);
-        update_upgrade_options(customer.membership_level);
+        update_level_options(customer.membership_level);
     }
 
     // ****************************************
-    // Upgrade a Customer's membership
+    // Upgrade / Downgrade a Customer's membership
     // ****************************************
 
     const MEMBERSHIP_LEVELS = ["bronze", "silver", "gold"];
 
-    // Only offer levels above the current one; the API rejects downgrades
-    function update_upgrade_options(current_level) {
-        const select = $("#customer_upgrade_level");
-        select.empty();
-        const higher = MEMBERSHIP_LEVELS.slice(MEMBERSHIP_LEVELS.indexOf(current_level) + 1);
-        if (higher.length === 0) {
-            select.append(new Option("Already at highest level", ""));
-        } else {
-            higher.forEach(function (level) {
-                const label = level.charAt(0).toUpperCase() + level.slice(1);
-                select.append(new Option(label, level));
-            });
-        }
-        select.prop("disabled", higher.length === 0);
-        $("#customer_upgrade-btn").prop("disabled", higher.length === 0);
+    function capitalize(text) {
+        return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
-    $("#customer_upgrade-form").submit(function (event) {
-        event.preventDefault();
+    // Fill a level dropdown with the given options, disabling it when empty
+    function fill_level_select(action, levels, empty_label) {
+        const select = $(`#customer_${action}_level`);
+        select.empty();
+        if (levels.length === 0) {
+            select.append(new Option(empty_label, ""));
+        } else {
+            levels.forEach(function (level) {
+                select.append(new Option(capitalize(level), level));
+            });
+        }
+        select.prop("disabled", levels.length === 0);
+        $(`#customer_${action}-btn`).prop("disabled", levels.length === 0);
+    }
 
+    // Only offer levels above (upgrade) or below (downgrade) the current one
+    function update_level_options(current_level) {
+        const rank = MEMBERSHIP_LEVELS.indexOf(current_level);
+        fill_level_select("upgrade", MEMBERSHIP_LEVELS.slice(rank + 1), "Already at highest level");
+        fill_level_select("downgrade", MEMBERSHIP_LEVELS.slice(0, Math.max(rank, 0)).reverse(), "Already at lowest level");
+    }
+
+    function change_membership(action) {
         const id = $("#customer_manage_id").val();
-        const target_level = $("#customer_upgrade_level").val();
-        const button = $("#customer_upgrade-btn");
+        const target_level = $(`#customer_${action}_level`).val();
+        const button = $(`#customer_${action}-btn`);
         if (!id || !target_level) {
             return;
         }
@@ -173,7 +242,7 @@ $(function () {
 
         $.ajax({
             type: "PUT",
-            url: `/customers/${id}/upgrade`,
+            url: `/customers/${id}/${action}`,
             contentType: "application/json",
             data: JSON.stringify({ target_level: target_level })
         })
@@ -187,13 +256,23 @@ $(function () {
                         row.children().last().text(response.membership_level);
                     }
                 });
-                alert(`Customer ${response.first_name} ${response.last_name} was successfully upgraded!`);
+                alert(`Customer ${response.first_name} ${response.last_name} was successfully ${action}d!`);
             })
             .fail(function (response) {
                 const message = response.responseJSON?.message || response.responseText || "Server error!";
-                alert(`Unable to upgrade customer: ${message}`);
+                alert(`Unable to ${action} customer: ${message}`);
                 button.prop("disabled", false);
             });
+    }
+
+    $("#customer_upgrade-form").submit(function (event) {
+        event.preventDefault();
+        change_membership("upgrade");
+    });
+
+    $("#customer_downgrade-form").submit(function (event) {
+        event.preventDefault();
+        change_membership("downgrade");
     });
 
     // The Manage tab is only usable once a search has returned results
